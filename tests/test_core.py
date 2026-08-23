@@ -186,6 +186,51 @@ def test_cannot_eliminate_after_the_game_is_over():
         game.eliminate(next(iter(game.active_players)))
 
 
+# -- Annulation --------------------------------------------------------
+
+
+def test_undo_puts_the_player_back_in_play():
+    game = make_game(names=SIX, undercover=1)
+    civilian = next(p.name for p in game.players if p.role is Role.CIVILIAN)
+    game.eliminate(civilian)
+
+    assert game.undo_last_elimination() == civilian
+    assert civilian in game.active_players
+    assert game.eliminated_players == ()
+
+
+def test_undo_revives_a_finished_game():
+    """Sortir le dernier imposteur finit la partie ; l'annuler la relance."""
+    game = make_game(names=SIX, undercover=1)
+    undercover = next(p.name for p in game.players if p.role is Role.UNDERCOVER)
+    game.eliminate(undercover)
+    assert game.is_over
+
+    game.undo_last_elimination()
+
+    assert not game.is_over
+    assert game.winner is None
+    # …et on peut rejouer le coup.
+    assert game.eliminate(undercover).game_over is True
+
+
+def test_undo_unwinds_one_step_at_a_time():
+    game = make_game(names=SIX, undercover=2)
+    civilians = [p.name for p in game.players if p.role is Role.CIVILIAN]
+    game.eliminate(civilians[0])
+    game.eliminate(civilians[1])
+
+    game.undo_last_elimination()
+    assert game.eliminated_players == (civilians[0],)
+
+
+def test_undo_without_elimination_is_refused():
+    game = make_game()
+    assert game.can_undo is False
+    with pytest.raises(RuleError, match="Aucune élimination"):
+        game.undo_last_elimination()
+
+
 # -- Générateur de mots ------------------------------------------------
 
 

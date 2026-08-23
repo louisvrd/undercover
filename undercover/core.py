@@ -212,3 +212,18 @@ class Game:
             winner=winner,
             active_players=self.active_players,
         )
+
+    def undo_last_elimination(self) -> str:
+        """Remet en jeu le dernier joueur éliminé.
+
+        `winner` étant recalculé à partir des joueurs actifs, retirer le
+        nom de la liste suffit : une partie déclarée finie redevient en
+        cours.
+        """
+        if not self._eliminated:
+            raise RuleError("Aucune élimination à annuler")
+        return self._eliminated.pop()
+
+    @property
+    def can_undo(self) -> bool:
+        return bool(self._eliminated)

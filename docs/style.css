@@ -1,26 +1,44 @@
 /*
  * Undercover — feuille de style de la PWA.
  *
- * Pensée pour le téléphone d'abord : cibles tactiles larges, encoches
- * iOS respectées, aucune police ni ressource externe (le jeu doit se
- * charger entièrement hors-ligne).
+ * Téléphone d'abord : cibles tactiles larges, encoches iOS respectées,
+ * aucune police ni ressource externe (le jeu doit se charger hors-ligne).
+ *
+ * Un seul bloc par sélecteur, et toute la couleur passe par les jetons
+ * ci-dessous.
  */
 
 :root {
-    --bg: #2c3e50;
-    --surface: #34495e;
-    --surface-deep: #243342;
-    --primary: #3498db;
-    --primary-dark: #2980b9;
-    --danger: #e74c3c;
-    --danger-dark: #c0392b;
-    --success: #2ecc71;
-    --warning: #f1c40f;
-    --purple: #9b59b6;
-    --text: #ecf0f1;
-    --text-muted: #a9b7c6;
-    --radius: 8px;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    /* Fonds : noir bleuté, du plus profond au plus clair */
+    --bg: #0f1620;
+    --bg-deep: #0a0f16;
+    --elev-1: #16202d;
+    --elev-2: #1d2939;
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    /* Accent principal */
+    --accent: #ff5a5f;
+    --accent-dim: #c8444a;
+    --accent-glow: rgba(255, 90, 95, 0.35);
+
+    /* Accents secondaires, un par rôle */
+    --info: #4dabf7;
+    --success: #38d9a9;
+    --warning: #ffd43b;
+    --purple: #b197fc;
+
+    --text: #f1f5f9;
+    --muted: #8fa3b8;
+
+    --r-sm: 10px;
+    --r-md: 14px;
+    --r-lg: 20px;
+
+    --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 *,
@@ -43,14 +61,19 @@ body {
     margin: 0;
     /* viewport-fit=cover : on récupère la place sous l'encoche, mais il
        faut alors écarter le contenu des bords nous-mêmes. */
-    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.6;
-    background: var(--bg);
+    line-height: 1.55;
     color: var(--text);
+    background:
+        radial-gradient(900px 500px at 50% -10%, rgba(255, 90, 95, 0.13), transparent 70%),
+        radial-gradient(700px 400px at 90% 10%, rgba(77, 171, 247, 0.09), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
     overscroll-behavior-y: contain; /* pas de rebond élastique façon page web */
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -63,41 +86,65 @@ button {
 /* ------------------------------------------------------------- structure */
 
 .app-container {
-    max-width: 720px;
+    max-width: 640px;
     margin: 0 auto;
 }
 
 .app-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 26px;
 }
 
 .app-header h1 {
     margin: 0;
-    font-size: 2.2rem;
+    font-size: clamp(2rem, 9vw, 2.6rem);
     font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--danger);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent); /* repli si background-clip n'est pas supporté */
+    background: linear-gradient(100deg, #ff8a5f, var(--accent) 45%, var(--purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .app-screen {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 14px;
+    animation: screen-in 0.4s var(--ease) both;
 }
 
 .app-card {
-    background: var(--surface);
-    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
     overflow: hidden;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-1);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
 }
 
 .app-card-header {
-    padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.06);
-    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.78rem;
     font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* Le liseré coloré qui identifie chaque carte d'un coup d'œil */
+.app-card-header::before {
+    content: '';
+    width: 3px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--accent);
 }
 
 .app-card-body {
@@ -105,14 +152,18 @@ button {
 }
 
 .section-title {
-    margin: 0 0 1.2rem;
-    font-size: 1.1rem;
+    margin: 0 0 1.1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
 }
 
 .hint {
-    margin: 0.75rem 0 0;
-    color: var(--text-muted);
-    font-size: 0.9rem;
+    margin: 0.7rem 0 0;
+    color: var(--muted);
+    font-size: 0.87rem;
 }
 
 .install-hint {
@@ -122,28 +173,39 @@ button {
 /* --------------------------------------------------------- formulaires */
 
 .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 16px;
+}
+
+.form-group:last-of-type {
+    margin-bottom: 0;
 }
 
 .app-label {
     display: block;
     margin-bottom: 0.5rem;
+    font-size: 0.95rem;
     font-weight: 600;
 }
 
 .form-control {
     width: 100%;
-    padding: 12px;
-    background: var(--surface-deep);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius);
+    padding: 13px 14px;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
     color: var(--text);
     font-size: 1rem;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.form-control::placeholder {
+    color: #5d7186;
 }
 
 .form-control:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .number-input {
@@ -154,93 +216,115 @@ button {
 
 .number-input .form-control {
     text-align: center;
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
 .btn-number {
     flex: 0 0 auto;
-    width: 48px;
-    height: 48px;
-    background: var(--surface-deep);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius);
+    width: 50px;
+    height: 50px;
+    background: var(--elev-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
     color: var(--text);
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     cursor: pointer;
+    transition: transform 0.14s var(--ease), background 0.14s, border-color 0.14s;
 }
 
 .btn-number:active {
-    background: var(--primary);
+    transform: scale(0.9);
+    background: var(--accent);
+    border-color: var(--accent);
 }
 
 .app-button {
     display: block;
     width: 100%;
-    margin-top: 12px;
+    margin-top: 14px;
     padding: 16px;
     border: none;
-    border-radius: var(--radius);
-    background: var(--primary);
+    border-radius: var(--r-md);
+    background: linear-gradient(180deg, #ff6b70, var(--accent));
     color: #fff;
     font-size: 1.05rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     cursor: pointer;
+    box-shadow: 0 6px 18px var(--accent-glow);
+    transition: transform 0.14s var(--ease), box-shadow 0.14s, filter 0.14s;
 }
 
 .app-button:active {
-    background: var(--primary-dark);
+    transform: translateY(2px) scale(0.985);
+    box-shadow: 0 2px 8px var(--accent-glow);
+    filter: brightness(0.95);
+}
+
+.app-button:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 .danger-button {
-    background: var(--danger);
+    background: none;
+    border: 1px solid var(--line-strong);
+    color: var(--muted);
+    box-shadow: none;
+    font-weight: 600;
 }
 
 .danger-button:active {
-    background: var(--danger-dark);
+    background: var(--elev-2);
+    box-shadow: none;
 }
 
 /* --------------------------------------------------------------- rôles */
 
 .roles-setup {
-    margin: 1.2rem 0;
-    padding: 1.2rem;
-    background: var(--surface-deep);
-    border-radius: var(--radius);
+    margin: 1.1rem 0;
+    padding: 1.1rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
 }
 
 .roles-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-    margin: 1.2rem 0;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.65rem;
+    margin: 1.1rem 0;
 }
 
-/* Fond sombre, pas blanc : le texte utilise --text, il serait invisible
-   sur du blanc. */
 .info-card {
-    padding: 0.9rem;
-    background: var(--surface-deep);
-    border-left: 4px solid var(--text-muted);
-    border-radius: var(--radius);
+    padding: 0.85rem 0.95rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--muted);
+    border-radius: var(--r-sm);
 }
 
 .info-card span {
     display: block;
     font-weight: 700;
+    font-size: 0.95rem;
 }
 
 .info-card small {
-    color: var(--text-muted);
-    font-size: 0.82rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
 
 .info-card.civilian {
-    border-left-color: var(--primary);
+    border-left-color: var(--info);
 }
 
 .info-card.undercover {
-    border-left-color: var(--danger);
+    border-left-color: var(--accent);
 }
 
 .info-card.mr-white {
@@ -254,35 +338,36 @@ button {
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: var(--bg);
+    background: var(--elev-2);
     object-fit: cover; /* la photo remplit le cercle sans se déformer */
     overflow: hidden;
 }
 
 .avatar-initial {
-    background: var(--primary);
+    background: linear-gradient(145deg, var(--info), #3b7fc4);
     color: #fff;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1;
 }
 
 .avatar-sm {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     font-size: 1.05rem;
 }
 
 .avatar-lg {
-    width: 96px;
-    height: 96px;
-    font-size: 2.4rem;
-    border: 3px solid var(--primary);
+    width: 116px;
+    height: 116px;
+    font-size: 2.8rem;
+    box-shadow: 0 0 0 3px var(--accent), 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .current-avatar {
     display: flex;
     justify-content: center;
-    margin-bottom: 0.9rem;
+    margin-bottom: 1rem;
+    animation: pop-in 0.45s var(--ease) both;
 }
 
 /* ------------------------------------------------------ noms des joueurs */
@@ -290,8 +375,8 @@ button {
 .player-names-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 0.75rem;
-    margin: 1.2rem 0;
+    gap: 0.65rem;
+    margin: 1.1rem 0;
 }
 
 .player-input {
@@ -308,21 +393,23 @@ button {
 .avatar-button {
     flex: 0 0 auto;
     padding: 0;
-    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border: 2px dashed var(--line-strong);
     border-radius: 50%;
     background: none;
     cursor: pointer;
     line-height: 0;
+    transition: transform 0.14s var(--ease), border-color 0.14s;
 }
 
 .avatar-button:active {
-    border-color: var(--primary);
+    transform: scale(0.92);
+    border-color: var(--accent);
 }
 
 /* Une fois la photo prise, le pointillé « à remplir » n'a plus lieu d'être. */
 .avatar-button:has(img) {
     border-style: solid;
-    border-color: var(--primary);
+    border-color: var(--accent);
 }
 
 .avatar-clear {
@@ -332,42 +419,51 @@ button {
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: var(--surface-deep);
-    color: var(--text-muted);
-    font-size: 1.2rem;
+    background: var(--elev-2);
+    color: var(--muted);
+    font-size: 1.15rem;
     cursor: pointer;
 }
 
 .avatar-clear:active {
-    background: var(--danger);
+    background: var(--accent);
     color: #fff;
 }
 
 /* ------------------------------------------------------ distribution */
 
 .turn-label {
-    margin: 0 0 1rem;
+    margin: 0 0 1.2rem;
     text-align: center;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
+    color: var(--muted);
 }
 
 .turn-label strong {
-    color: var(--primary);
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
 }
 
 .word-card {
     margin: 1.2rem 0;
-    padding: 2rem 1rem;
-    background: var(--surface-deep);
-    border: 2px solid var(--primary);
-    border-radius: var(--radius);
+    padding: 2.2rem 1rem;
+    background: radial-gradient(120% 120% at 50% 0%, rgba(255, 90, 95, 0.16), transparent 65%),
+                var(--bg-deep);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-md);
     text-align: center;
+    box-shadow: 0 0 34px rgba(255, 90, 95, 0.18) inset;
+    animation: reveal 0.5s var(--ease) both;
 }
 
 .word-content {
-    font-size: 2.1rem;
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
     font-weight: 800;
-    color: var(--danger);
+    letter-spacing: -0.015em;
+    color: var(--accent);
     overflow-wrap: break-word;
 }
 
@@ -375,85 +471,132 @@ button {
     text-align: center;
 }
 
+.player-actions {
+    display: flex;
+    gap: 0.7rem;
+}
+
+.player-actions .app-button {
+    margin-top: 0;
+}
+
 /* ---------------------------------------------------- listes de joueurs */
 
 .player-list {
-    margin-top: 0.75rem;
+    margin-top: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .player-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.6rem;
-    padding: 0.85rem 1rem;
-    background: var(--surface-deep);
-    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    animation: slide-in 0.32s var(--ease) both;
+    transition: opacity 0.25s, border-color 0.2s;
 }
 
 .player-item span {
     flex: 1;
-    font-size: 1.05rem;
+    font-size: 1.02rem;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 
 .player-item.eliminated {
-    opacity: 0.6;
+    opacity: 0.5;
 }
 
 .player-item.eliminated span {
     text-decoration: line-through;
-    color: var(--text-muted);
+    color: var(--muted);
 }
 
 .vote-button {
     flex: 0 0 auto;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    background: var(--danger);
-    color: #fff;
+    padding: 10px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-sm);
+    background: none;
+    color: var(--muted);
+    font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;
+    transition: background 0.16s, color 0.16s, border-color 0.16s;
 }
 
 .vote-button:active {
-    background: var(--danger-dark);
+    transform: scale(0.96);
+}
+
+/* Deuxième état : il faut retaper pour valider. Évite l'élimination
+   accidentelle, que l'annulation rattrape ensuite si besoin. */
+.vote-button.confirming {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.undo-button {
+    width: 100%;
+    margin-top: 0.7rem;
+    padding: 12px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--r-sm);
+    background: none;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.undo-button:active {
+    background: var(--elev-2);
+    color: var(--text);
 }
 
 /* ---------------------------------------------------------- révélation */
 
 .winner-banner {
-    padding: 1.3rem;
-    background: var(--success);
-    border-radius: var(--radius);
-    color: #08301c;
+    padding: 1.4rem 1.2rem;
+    background: linear-gradient(135deg, var(--success), #2bb98d);
+    border-radius: var(--r-lg);
+    color: #06281e;
     text-align: center;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 800;
+    box-shadow: 0 10px 30px rgba(56, 217, 169, 0.25);
+    animation: pop-in 0.5s var(--ease) both;
 }
 
 .word-list {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.5rem;
 }
 
 .word-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 0.7rem 1rem;
-    background: var(--surface-deep);
-    border-radius: var(--radius);
+    gap: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    animation: slide-in 0.32s var(--ease) both;
 }
 
 .word-item-who {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0.65rem;
     min-width: 0;
     font-weight: 700;
 }
@@ -464,12 +607,13 @@ button {
 
 .word-item-detail {
     flex: 0 0 auto;
-    color: var(--text-muted);
+    color: var(--muted);
     text-align: right;
+    font-size: 0.88rem;
 }
 
 .word-item.eliminated {
-    opacity: 0.6;
+    opacity: 0.55;
 }
 
 /* -------------------------------------------------------------- caméra */
@@ -482,22 +626,25 @@ button {
     align-items: center;
     justify-content: center;
     padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(6, 10, 15, 0.94);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    animation: fade-in 0.25s var(--ease) both;
 }
 
 .camera-sheet {
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
 }
 
 .camera-title {
-    margin: 0 0 0.8rem;
+    margin: 0 0 1rem;
     text-align: center;
-    color: var(--text);
+    color: var(--muted);
 }
 
 .camera-title strong {
-    color: var(--primary);
+    color: var(--text);
 }
 
 .camera-frame {
@@ -507,7 +654,7 @@ button {
     border-radius: 50%;
     overflow: hidden;
     background: #000;
-    border: 3px solid var(--primary);
+    box-shadow: 0 0 0 3px var(--accent), 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 
 .camera-frame video {
@@ -520,10 +667,10 @@ button {
 }
 
 .camera-error {
-    margin: 0.9rem 0 0;
-    padding: 0.7rem 0.9rem;
-    border-radius: var(--radius);
-    background: var(--danger);
+    margin: 1rem 0 0;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--r-sm);
+    background: var(--accent-dim);
     color: #fff;
     text-align: center;
     font-size: 0.9rem;
@@ -533,24 +680,26 @@ button {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 1.4rem;
+    margin-top: 1.6rem;
 }
 
 .camera-shoot {
-    width: 74px;
-    height: 74px;
-    border: 5px solid rgba(255, 255, 255, 0.85);
+    width: 76px;
+    height: 76px;
+    border: 5px solid rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
+    transition: transform 0.14s var(--ease), background 0.14s;
 }
 
 .camera-shoot:active {
-    background: var(--danger);
+    transform: scale(0.9);
+    background: var(--accent);
 }
 
 .camera-shoot:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     cursor: not-allowed;
 }
 
@@ -559,19 +708,25 @@ button {
     height: 52px;
     border: none;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
     color: #fff;
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     cursor: pointer;
+    transition: transform 0.14s var(--ease), background 0.14s;
 }
 
 .camera-side:active {
-    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.26);
 }
 
 .camera-gallery {
-    margin-top: 1.2rem;
-    background: var(--surface);
+    margin-top: 1.3rem;
+    background: none;
+    border: 1px solid var(--line-strong);
+    color: var(--muted);
+    box-shadow: none;
+    font-weight: 600;
 }
 
 /* -------------------------------------------------------- notifications */
@@ -579,41 +734,91 @@ button {
 .notification {
     position: fixed;
     left: 50%;
-    bottom: max(20px, env(safe-area-inset-bottom));
+    bottom: max(22px, env(safe-area-inset-bottom));
     transform: translateX(-50%);
     max-width: calc(100vw - 32px);
-    padding: 0.9rem 1.5rem;
-    border-radius: var(--radius);
-    background: var(--primary);
-    color: #fff;
+    padding: 0.85rem 1.4rem;
+    border-radius: 999px;
+    background: var(--elev-2);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
     font-weight: 600;
+    font-size: 0.95rem;
     text-align: center;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-    z-index: 1000;
+    box-shadow: var(--shadow-2);
+    z-index: 3000;
     opacity: 1;
+    animation: toast-in 0.32s var(--ease) both;
     transition: opacity 0.35s ease;
 }
 
 .notification.error {
-    background: var(--danger);
+    background: var(--accent-dim);
+    border-color: var(--accent);
 }
 
 .notification.warning {
     background: var(--warning);
-    color: #4a3a00;
+    border-color: var(--warning);
+    color: #3d2f00;
 }
 
 .notification.success {
     background: var(--success);
-    color: #08301c;
+    border-color: var(--success);
+    color: #06281e;
 }
 
 .notification.fade-out {
     opacity: 0;
 }
 
+/* ------------------------------------------------------------ animations */
+
+@keyframes screen-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes pop-in {
+    0%   { opacity: 0; transform: scale(0.82); }
+    70%  { transform: scale(1.04); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes reveal {
+    0%   { opacity: 0; transform: scale(0.9); filter: blur(8px); }
+    100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 14px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes pulse {
+    50% { opacity: 0.72; }
+}
+
+/* Réglage système « réduire les animations » : on coupe tout mouvement,
+   sans jamais laisser un élément invisible (les animations d'entrée
+   utilisent `both`). */
 @media (prefers-reduced-motion: reduce) {
-    .notification {
-        transition: none;
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
     }
 }

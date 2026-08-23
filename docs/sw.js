@@ -10,7 +10,7 @@
  * version depuis leur cache.
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `undercover-${CACHE_VERSION}`;
 
 const ASSETS = [

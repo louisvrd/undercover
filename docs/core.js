@@ -260,4 +260,22 @@ export class Game {
       activePlayers: this.activePlayers,
     };
   }
+
+  /**
+   * Remet en jeu le dernier joueur éliminé — pour rattraper un tap raté.
+   *
+   * `winner` étant recalculé à partir des joueurs actifs, retirer le nom
+   * de la liste suffit : une partie déclarée finie redevient en cours.
+   */
+  undoLastElimination() {
+    const name = this.#eliminated.pop();
+    if (name === undefined) {
+      throw new RuleError('Aucune élimination à annuler');
+    }
+    return name;
+  }
+
+  get canUndo() {
+    return this.#eliminated.length > 0;
+  }
 }

@@ -14,6 +14,8 @@ import { Camera, isCameraSupported } from './camera.js';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
+const ROSTER_KEY = 'undercover:roster';
+const CONFIRM_MS = 3000;
 
 const el = (id) => document.getElementById(id);
 
@@ -25,6 +27,7 @@ const state = {
   revealIndex: 0,
   draftPhotos: [], // par ligne de saisie, avant que le nom soit définitif
   photos: {}, // par nom, une fois la partie lancée
+  pendingNames: [], // composition mémorisée de la partie précédente
 };
 
 let game = null;
@@ -48,6 +51,53 @@ function clearSave() {
     localStorage.removeItem(SAVE_KEY);
   } catch {
     /* rien à faire */
+  }
+}
+
+/** Retient la composition du groupe pour la prochaine partie. */
+function saveRoster(names) {
+  try {
+    localStorage.setItem(
+      ROSTER_KEY,
+      JSON.stringify({ names, undercover: state.undercover, mrWhite: state.mrWhite }),
+    );
+  } catch {
+    /* pas grave : il faudra retaper les noms */
+  }
+}
+
+function applyRoster() {
+  let roster;
+  try {
+    roster = JSON.parse(localStorage.getItem(ROSTER_KEY) ?? 'null');
+  } catch {
+    return;
+  }
+  if (!roster || !Array.isArray(roster.names) || roster.names.length < MIN_PLAYERS) return;
+
+  const names = roster.names.filter((n) => typeof n === 'string').slice(0, MAX_PLAYERS);
+  if (names.length < MIN_PLAYERS) return;
+
+  state.numPlayers = names.length;
+  state.undercover = Number.isInteger(roster.undercover) ? roster.undercover : state.undercover;
+  state.mrWhite = Number.isInteger(roster.mrWhite) ? roster.mrWhite : state.mrWhite;
+  state.pendingNames = names;
+
+  // Les habitués retrouvent leur photo en même temps que leur nom.
+  names.forEach((name, i) => {
+    if (state.photos[name]) state.draftPhotos[i] = state.photos[name];
+  });
+  el('num-players').value = state.numPlayers;
+}
+
+/* -------------------------------------------------------------- haptique */
+
+/** Vibration courte. Sans effet sur iOS, qui n'expose pas l'API. */
+function haptic(pattern) {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* certains navigateurs lèvent au lieu d'ignorer */
   }
 }
 
@@ -245,7 +295,8 @@ function renderNameInputs() {
 
   container.replaceChildren();
   for (let i = 0; i < state.numPlayers; i += 1) {
-    container.appendChild(buildPlayerRow(i, typed[i] ?? ''));
+    // Priorité : ce qui est déjà tapé, sinon la composition mémorisée.
+    container.appendChild(buildPlayerRow(i, typed[i] ?? state.pendingNames[i] ?? ''));
   }
 }
 
@@ -314,8 +365,10 @@ function startGame() {
   });
   state.photos = loadPhotos();
   if (!stored) notify('Photos non enregistrées : mémoire du navigateur pleine.', 'warning');
+  saveRoster(names);
 
   state.revealIndex = 0;
+  haptic(25);
   save('reveal');
   showScreen('reveal-screen');
   showTurn();
@@ -350,6 +403,7 @@ function showWord() {
   const isLast = state.revealIndex === game.names.length - 1;
   el('next-label').textContent = isLast ? 'Commencer le débat' : 'Suivant';
   el('next-player').hidden = false;
+  haptic(word === null ? [15, 40, 15] : 15); // Mr. White a droit à sa signature
 }
 
 function nextPlayer() {
@@ -377,13 +431,52 @@ function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
   row.appendChild(label);
 
   if (onEliminate) {
-    const button = document.createElement('button');
-    button.className = 'vote-button';
-    button.textContent = 'Éliminer';
-    button.addEventListener('click', () => onEliminate(name));
-    row.appendChild(button);
+    row.appendChild(eliminateButton(name, onEliminate));
   }
   return row;
+}
+
+/**
+ * Bouton d'élimination à deux temps : le premier tap arme, le second
+ * valide. Il se désarme seul au bout de CONFIRM_MS, pour qu'un bouton
+ * oublié ne piège pas le tap suivant.
+ */
+function eliminateButton(name, onEliminate) {
+  const button = document.createElement('button');
+  button.className = 'vote-button';
+  button.textContent = 'Éliminer';
+
+  let armed = false;
+  let timer = null;
+
+  const disarm = () => {
+    armed = false;
+    clearTimeout(timer);
+    button.classList.remove('confirming');
+    button.textContent = 'Éliminer';
+  };
+
+  button.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      button.classList.add('confirming');
+      button.textContent = 'Confirmer';
+      haptic(12);
+      timer = setTimeout(disarm, CONFIRM_MS);
+      return;
+    }
+    disarm();
+    onEliminate(name);
+  });
+
+  return button;
+}
+
+/** Décale l'apparition des lignes pour qu'elles arrivent en cascade. */
+function stagger(container) {
+  [...container.children].forEach((child, i) => {
+    child.style.animationDelay = `${Math.min(i, 8) * 45}ms`;
+  });
 }
 
 function render() {
@@ -394,19 +487,25 @@ function render() {
   game.activePlayers.forEach((name) => {
     active.appendChild(playerRow(name, { onEliminate: over ? null : eliminate }));
   });
+  stagger(active);
 
   const eliminated = el('eliminated-list');
   eliminated.replaceChildren();
   game.eliminatedPlayers.forEach((name) => {
     eliminated.appendChild(playerRow(name, { eliminated: true }));
   });
+  stagger(eliminated);
+
   el('eliminated-card').hidden = game.eliminatedPlayers.length === 0;
+  el('undo-elimination').hidden = !game.canUndo;
 
   const banner = el('winner-banner');
   banner.hidden = !over;
   if (over) {
     banner.textContent = game.winnerMessage;
     showReveal();
+  } else {
+    el('reveal-card').hidden = true; // une annulation peut relancer la partie
   }
 }
 
@@ -421,11 +520,28 @@ function eliminate(name) {
 
   if (result.gameOver) {
     clearSave(); // partie finie : rien à reprendre
+    haptic([40, 60, 120]);
   } else {
     save('play');
     notify(`${result.player} était ${ROLE_LABELS[result.role]}.`, 'info');
+    haptic(35);
   }
   render();
+}
+
+function undoElimination() {
+  let name;
+  try {
+    name = game.undoLastElimination();
+  } catch (error) {
+    notify(error.message, 'error');
+    return;
+  }
+
+  save('play'); // la partie repart, même si elle venait de se terminer
+  render();
+  notify(`${name} revient en jeu.`, 'success');
+  haptic(20);
 }
 
 function showReveal() {
@@ -529,6 +645,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && camera.isRunning) closeCamera();
 });
 
+el('undo-elimination').addEventListener('click', undoElimination);
 el('start-game').addEventListener('click', startGame);
 el('show-word').addEventListener('click', showWord);
 el('next-player').addEventListener('click', nextPlayer);
@@ -538,6 +655,7 @@ el('new-game').addEventListener('click', () => {
 });
 
 state.photos = loadPhotos();
+applyRoster();
 renderNameInputs();
 refreshRules();
 setupInstallHint();

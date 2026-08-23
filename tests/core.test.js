@@ -178,6 +178,47 @@ test('on ne peut plus éliminer après la fin', () => {
   assert.throws(() => game.eliminate(game.activePlayers[0]), /terminée/);
 });
 
+// -- Annulation --------------------------------------------------------
+
+test('annuler remet le joueur en jeu', () => {
+  const game = makeGame({ names: SIX, undercover: 1 });
+  const civil = game.players.find((p) => p.role === Role.CIVILIAN).name;
+  game.eliminate(civil);
+
+  assert.equal(game.undoLastElimination(), civil);
+  assert.ok(game.activePlayers.includes(civil));
+  assert.deepEqual(game.eliminatedPlayers, []);
+});
+
+test('annuler relance une partie terminée', () => {
+  const game = makeGame({ names: SIX, undercover: 1 });
+  const undercover = game.players.find((p) => p.role === Role.UNDERCOVER).name;
+  game.eliminate(undercover);
+  assert.ok(game.isOver);
+
+  game.undoLastElimination();
+
+  assert.ok(!game.isOver);
+  assert.equal(game.winner, null);
+  assert.equal(game.eliminate(undercover).gameOver, true);
+});
+
+test('annuler ne remonte que d’un cran', () => {
+  const game = makeGame({ names: SIX, undercover: 2 });
+  const civils = game.players.filter((p) => p.role === Role.CIVILIAN).map((p) => p.name);
+  game.eliminate(civils[0]);
+  game.eliminate(civils[1]);
+
+  game.undoLastElimination();
+  assert.deepEqual(game.eliminatedPlayers, [civils[0]]);
+});
+
+test('annuler sans élimination est refusé', () => {
+  const game = makeGame();
+  assert.equal(game.canUndo, false);
+  assert.throws(() => game.undoLastElimination(), /Aucune élimination/);
+});
+
 // -- Générateur de mots ------------------------------------------------
 
 test('une paire = deux mots distincts du même groupe', () => {
