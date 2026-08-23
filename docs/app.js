@@ -9,6 +9,7 @@
  */
 
 import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
+import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -21,6 +22,8 @@ const state = {
   mrWhite: 0,
   maxSpecial: maxSpecialRoles(4),
   revealIndex: 0,
+  draftPhotos: [], // par ligne de saisie, avant que le nom soit définitif
+  photos: {}, // par nom, une fois la partie lancée
 };
 
 let game = null;
@@ -89,23 +92,95 @@ function showScreen(id) {
 
 /* --------------------------------------------------------------- écran 1 */
 
+function nameInputs() {
+  return [...el('player-names').querySelectorAll('input[type="text"]')];
+}
+
+/** Redessine la pastille d'une ligne selon sa photo brouillon. */
+function refreshRowAvatar(row, index) {
+  const button = row.querySelector('.avatar-button');
+  const photo = state.draftPhotos[index] ?? null;
+  const name = row.querySelector('input[type="text"]').value.trim();
+
+  button.replaceChildren(avatarElement(name || '?', photo, 'avatar-sm'));
+  button.setAttribute(
+    'aria-label',
+    photo ? `Changer la photo de ${name || `joueur ${index + 1}`}`
+          : `Ajouter une photo pour ${name || `joueur ${index + 1}`}`,
+  );
+  row.querySelector('.avatar-clear').hidden = !photo;
+}
+
+async function pickPhoto(row, index, file) {
+  if (!file) return;
+  try {
+    state.draftPhotos[index] = await fileToAvatar(file);
+    refreshRowAvatar(row, index);
+  } catch (error) {
+    notify(error.message, 'error');
+  }
+}
+
+function buildPlayerRow(index, value) {
+  const row = document.createElement('div');
+  row.className = 'player-input';
+
+  // Pas d'attribut `capture` : le téléphone propose alors « Prendre une
+  // photo » ET la photothèque, au lieu d'imposer l'appareil photo.
+  const file = document.createElement('input');
+  file.type = 'file';
+  file.accept = 'image/*';
+  file.hidden = true;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'avatar-button';
+  button.addEventListener('click', () => file.click());
+
+  file.addEventListener('change', () => {
+    pickPhoto(row, index, file.files[0]);
+    file.value = ''; // pour que reprendre la même photo redéclenche 'change'
+  });
+
+  const name = document.createElement('input');
+  name.type = 'text';
+  name.className = 'form-control';
+  name.placeholder = `Joueur ${index + 1}`;
+  name.autocomplete = 'off';
+  name.value = value;
+
+  // Un joueur qui revient retrouve sa photo dès que son nom est écrit.
+  name.addEventListener('change', () => {
+    const known = state.photos[name.value.trim()];
+    if (known && !state.draftPhotos[index]) state.draftPhotos[index] = known;
+    refreshRowAvatar(row, index);
+  });
+
+  const clear = document.createElement('button');
+  clear.type = 'button';
+  clear.className = 'avatar-clear';
+  clear.textContent = '×';
+  clear.hidden = true;
+  clear.setAttribute('aria-label', 'Retirer la photo');
+  clear.addEventListener('click', () => {
+    const who = name.value.trim();
+    state.draftPhotos[index] = null;
+    if (who) removePhoto(who);
+    refreshRowAvatar(row, index);
+  });
+
+  row.append(button, file, name, clear);
+  refreshRowAvatar(row, index);
+  return row;
+}
+
 function renderNameInputs() {
   const container = el('player-names');
-  const typed = [...container.querySelectorAll('input')].map((input) => input.value);
+  const typed = nameInputs().map((input) => input.value);
 
   container.replaceChildren();
   for (let i = 0; i < state.numPlayers; i += 1) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'form-control';
-    input.placeholder = `Joueur ${i + 1}`;
-    input.autocomplete = 'off';
-    input.value = typed[i] ?? ''; // on ne perd pas les noms déjà saisis
-
-    const row = document.createElement('div');
-    row.className = 'player-input';
-    row.appendChild(input);
-    container.appendChild(row);
+    container.appendChild(buildPlayerRow(i, typed[i] ?? ''));
   }
 }
 
@@ -129,6 +204,7 @@ function step(target, delta) {
   if (target === 'num-players') {
     const next = state.numPlayers + delta;
     if (next < MIN_PLAYERS || next > MAX_PLAYERS) return;
+    if (delta < 0) state.draftPhotos[next] = null; // la ligne disparaît
     state.numPlayers = next;
     el('num-players').value = next;
     renderNameInputs();
@@ -148,7 +224,7 @@ function step(target, delta) {
 }
 
 function startGame() {
-  const names = [...el('player-names').querySelectorAll('input')].map((i) => i.value.trim());
+  const names = nameInputs().map((i) => i.value.trim());
 
   if (names.some((name) => !name)) {
     notify('Tous les joueurs doivent avoir un nom.', 'error');
@@ -166,6 +242,14 @@ function startGame() {
     return;
   }
 
+  // Les photos brouillon prennent enfin le nom définitif de leur joueur.
+  let stored = true;
+  names.forEach((name, i) => {
+    if (state.draftPhotos[i]) stored = setPhoto(name, state.draftPhotos[i]) && stored;
+  });
+  state.photos = loadPhotos();
+  if (!stored) notify('Photos non enregistrées : mémoire du navigateur pleine.', 'warning');
+
   state.revealIndex = 0;
   save('reveal');
   showScreen('reveal-screen');
@@ -175,7 +259,12 @@ function startGame() {
 /* --------------------------------------------------------------- écran 2 */
 
 function showTurn() {
-  el('current-player').textContent = game.names[state.revealIndex];
+  const name = game.names[state.revealIndex];
+
+  el('current-avatar').replaceChildren(
+    avatarElement(name, state.photos[name], 'avatar-lg'),
+  );
+  el('current-player').textContent = name;
   el('word-card').hidden = true;
   el('show-word').hidden = false;
   el('next-player').hidden = true;
@@ -216,6 +305,7 @@ function nextPlayer() {
 function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
   const row = document.createElement('div');
   row.className = eliminated ? 'player-item eliminated' : 'player-item';
+  row.appendChild(avatarElement(name, state.photos[name], 'avatar-sm'));
 
   const label = document.createElement('span');
   label.textContent = name;
@@ -282,13 +372,19 @@ function showReveal() {
     const row = document.createElement('div');
     row.className = eliminated ? 'word-item eliminated' : 'word-item';
 
+    const who = document.createElement('div');
+    who.className = 'word-item-who';
+    who.appendChild(avatarElement(player.name, state.photos[player.name], 'avatar-sm'));
+
     const name = document.createElement('span');
     name.textContent = player.name;
+    who.appendChild(name);
 
     const detail = document.createElement('span');
+    detail.className = 'word-item-detail';
     detail.textContent = `${ROLE_LABELS[player.role]} — ${player.word ?? 'aucun mot'}`;
 
-    row.append(name, detail);
+    row.append(who, detail);
     list.appendChild(row);
   });
 
@@ -364,6 +460,7 @@ el('new-game').addEventListener('click', () => {
   window.location.reload();
 });
 
+state.photos = loadPhotos();
 renderNameInputs();
 refreshRules();
 setupInstallHint();

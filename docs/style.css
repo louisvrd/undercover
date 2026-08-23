@@ -247,13 +247,100 @@ button {
     border-left-color: var(--purple);
 }
 
+/* --------------------------------------------------------- pastilles */
+
+.avatar {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--bg);
+    object-fit: cover; /* la photo remplit le cercle sans se déformer */
+    overflow: hidden;
+}
+
+.avatar-initial {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.avatar-sm {
+    width: 40px;
+    height: 40px;
+    font-size: 1.05rem;
+}
+
+.avatar-lg {
+    width: 96px;
+    height: 96px;
+    font-size: 2.4rem;
+    border: 3px solid var(--primary);
+}
+
+.current-avatar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.9rem;
+}
+
 /* ------------------------------------------------------ noms des joueurs */
 
 .player-names-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 0.75rem;
     margin: 1.2rem 0;
+}
+
+.player-input {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.player-input .form-control {
+    flex: 1;
+    min-width: 0; /* sinon l'input refuse de rétrécir dans le flex */
+}
+
+.avatar-button {
+    flex: 0 0 auto;
+    padding: 0;
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    line-height: 0;
+}
+
+.avatar-button:active {
+    border-color: var(--primary);
+}
+
+/* Une fois la photo prise, le pointillé « à remplir » n'a plus lieu d'être. */
+.avatar-button:has(img) {
+    border-style: solid;
+    border-color: var(--primary);
+}
+
+.avatar-clear {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--surface-deep);
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.avatar-clear:active {
+    background: var(--danger);
+    color: #fff;
 }
 
 /* ------------------------------------------------------ distribution */
@@ -355,18 +442,28 @@ button {
 
 .word-item {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.85rem 1rem;
+    padding: 0.7rem 1rem;
     background: var(--surface-deep);
     border-radius: var(--radius);
 }
 
-.word-item span:first-child {
+.word-item-who {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
     font-weight: 700;
 }
 
-.word-item span:last-child {
+.word-item-who span {
+    overflow-wrap: anywhere;
+}
+
+.word-item-detail {
+    flex: 0 0 auto;
     color: var(--text-muted);
     text-align: right;
 }
