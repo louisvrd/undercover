@@ -10,6 +10,7 @@
 
 import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
 import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
+import { Camera, isCameraSupported } from './camera.js';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -121,26 +122,90 @@ async function pickPhoto(row, index, file) {
   }
 }
 
+/* ---------------------------------------------------------------- caméra */
+
+const camera = new Camera();
+let cameraTarget = null; // { row, index } de la ligne en cours de photo
+
+// Input photothèque unique, hors de la modale : un <input type="file">
+// visible dans une PWA iOS peut perdre le focus de la page à sa fermeture.
+const galleryInput = document.createElement('input');
+galleryInput.type = 'file';
+galleryInput.accept = 'image/*';
+galleryInput.hidden = true;
+
+function cameraError(message) {
+  const node = el('camera-error');
+  node.textContent = message ?? '';
+  node.hidden = !message;
+  el('camera-shoot').disabled = Boolean(message);
+}
+
+async function openCamera(row, index, name) {
+  cameraTarget = { row, index };
+  el('camera-who').textContent = name || `joueur ${index + 1}`;
+  cameraError(null);
+  el('camera-modal').hidden = false;
+
+  if (!isCameraSupported()) {
+    cameraError('Caméra indisponible ici — passez par la photothèque.');
+    return;
+  }
+  try {
+    await camera.start(el('camera-video'));
+  } catch (error) {
+    cameraError(error.message);
+  }
+}
+
+function closeCamera() {
+  camera.stop(); // coupe le flux : sans ça le voyant reste allumé
+  el('camera-modal').hidden = true;
+  cameraTarget = null;
+}
+
+function shoot() {
+  if (!cameraTarget) return;
+  const { row, index } = cameraTarget;
+  try {
+    state.draftPhotos[index] = camera.grab();
+  } catch (error) {
+    cameraError(error.message);
+    return;
+  }
+  closeCamera();
+  refreshRowAvatar(row, index);
+}
+
+async function flipCamera() {
+  cameraError(null);
+  try {
+    await camera.flip(el('camera-video'));
+  } catch (error) {
+    cameraError(error.message);
+  }
+}
+
+galleryInput.addEventListener('change', async () => {
+  const file = galleryInput.files[0];
+  galleryInput.value = ''; // pour que reprendre la même photo redéclenche 'change'
+  if (!file || !cameraTarget) return;
+
+  const { row, index } = cameraTarget;
+  closeCamera();
+  await pickPhoto(row, index, file);
+});
+
 function buildPlayerRow(index, value) {
   const row = document.createElement('div');
   row.className = 'player-input';
 
-  // Pas d'attribut `capture` : le téléphone propose alors « Prendre une
-  // photo » ET la photothèque, au lieu d'imposer l'appareil photo.
-  const file = document.createElement('input');
-  file.type = 'file';
-  file.accept = 'image/*';
-  file.hidden = true;
-
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'avatar-button';
-  button.addEventListener('click', () => file.click());
-
-  file.addEventListener('change', () => {
-    pickPhoto(row, index, file.files[0]);
-    file.value = ''; // pour que reprendre la même photo redéclenche 'change'
-  });
+  button.addEventListener('click', () =>
+    openCamera(row, index, row.querySelector('input[type="text"]').value.trim()),
+  );
 
   const name = document.createElement('input');
   name.type = 'text';
@@ -169,7 +234,7 @@ function buildPlayerRow(index, value) {
     refreshRowAvatar(row, index);
   });
 
-  row.append(button, file, name, clear);
+  row.append(button, name, clear);
   refreshRowAvatar(row, index);
   return row;
 }
@@ -450,6 +515,18 @@ document.querySelectorAll('.btn-number').forEach((button) => {
   button.addEventListener('click', () =>
     step(button.dataset.target, Number(button.dataset.step)),
   );
+});
+
+el('camera-shoot').addEventListener('click', shoot);
+el('camera-cancel').addEventListener('click', closeCamera);
+el('camera-flip').addEventListener('click', flipCamera);
+el('camera-gallery').addEventListener('click', () => galleryInput.click());
+document.body.appendChild(galleryInput);
+
+// Passage en arrière-plan : on relâche la caméra plutôt que de la garder
+// ouverte pour rien.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && camera.isRunning) closeCamera();
 });
 
 el('start-game').addEventListener('click', startGame);

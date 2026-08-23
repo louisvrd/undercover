@@ -472,6 +472,108 @@ button {
     opacity: 0.6;
 }
 
+/* -------------------------------------------------------------- caméra */
+
+.camera-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(0, 0, 0, 0.92);
+}
+
+.camera-sheet {
+    width: 100%;
+    max-width: 420px;
+}
+
+.camera-title {
+    margin: 0 0 0.8rem;
+    text-align: center;
+    color: var(--text);
+}
+
+.camera-title strong {
+    color: var(--primary);
+}
+
+.camera-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #000;
+    border: 3px solid var(--primary);
+}
+
+.camera-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Aperçu en miroir : on se voit comme dans une glace. La capture
+       applique la même inversion (voir Camera#grab). */
+    transform: scaleX(-1);
+}
+
+.camera-error {
+    margin: 0.9rem 0 0;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--danger);
+    color: #fff;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.camera-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.4rem;
+}
+
+.camera-shoot {
+    width: 74px;
+    height: 74px;
+    border: 5px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+
+.camera-shoot:active {
+    background: var(--danger);
+}
+
+.camera-shoot:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.camera-side {
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.camera-side:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.camera-gallery {
+    margin-top: 1.2rem;
+    background: var(--surface);
+}
+
 /* -------------------------------------------------------- notifications */
 
 .notification {

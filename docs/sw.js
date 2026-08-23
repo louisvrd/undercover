@@ -10,7 +10,7 @@
  * version depuis leur cache.
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `undercover-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -21,6 +21,7 @@ const ASSETS = [
   'core.js',
   'words.js',
   'photos.js',
+  'camera.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',

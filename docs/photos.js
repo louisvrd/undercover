@@ -55,7 +55,39 @@ export function clearPhotos() {
   }
 }
 
-/* -------------------------------------------------------------- capture */
+/* ------------------------------------------------------- traitement image */
+
+/**
+ * Recadre au carré centré, réduit à SIZE et réencode en JPEG.
+ *
+ * Partagé par la caméra intégrée et par le choix depuis la photothèque,
+ * pour que les deux produisent exactement la même vignette.
+ *
+ * `mirror` sert à la caméra frontale : on capture ce que l'utilisateur
+ * voyait à l'écran, pas son image inversée.
+ */
+export function drawAvatar(source, width, height, { mirror = false } = {}) {
+  if (!width || !height) throw new Error("Cette image n'a pas pu être lue.");
+
+  const side = Math.min(width, height);
+  const sx = (width - side) / 2;
+  const sy = (height - side) / 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  const ctx = canvas.getContext('2d');
+
+  if (mirror) {
+    ctx.translate(SIZE, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(source, sx, sy, side, side, 0, 0, SIZE, SIZE);
+
+  return canvas.toDataURL('image/jpeg', QUALITY);
+}
+
+/* -------------------------------------------------------------- fichier */
 
 /**
  * Décode le fichier choisi.
@@ -97,31 +129,18 @@ export async function fileToAvatar(file) {
   }
 
   const source = await decode(file);
-  const width = source.width;
-  const height = source.height;
-  if (!width || !height) throw new Error("Cette image n'a pas pu être lue.");
-
-  // Recadrage centré : on garde le plus grand carré possible.
-  const side = Math.min(width, height);
-  const sx = (width - side) / 2;
-  const sy = (height - side) / 2;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(source, sx, sy, side, side, 0, 0, SIZE, SIZE);
-
-  if (typeof source.close === 'function') source.close(); // libère l'ImageBitmap
-
-  return canvas.toDataURL('image/jpeg', QUALITY);
+  try {
+    return drawAvatar(source, source.width, source.height);
+  } finally {
+    if (typeof source.close === 'function') source.close(); // libère l'ImageBitmap
+  }
 }
 
 /* -------------------------------------------------------------- affichage */
 
 /**
  * Pastille du joueur : sa photo si elle existe, sinon son initiale.
- * `size` est une classe CSS (avatar-sm / avatar-lg), pas une dimension.
+ * `extraClass` est une classe CSS (avatar-sm / avatar-lg).
  */
 export function avatarElement(name, photo, extraClass = '') {
   if (photo) {

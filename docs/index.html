@@ -141,6 +141,31 @@
         </section>
     </div>
 
+    <!-- Caméra intégrée : voir camera.js pour la raison -->
+    <div id="camera-modal" class="camera-modal" hidden>
+        <div class="camera-sheet">
+            <p class="camera-title">Photo de <strong id="camera-who"></strong></p>
+
+            <div class="camera-frame">
+                <!-- playsinline + muted : sans eux, iOS bascule en plein
+                     écran ou refuse de lancer la lecture -->
+                <video id="camera-video" playsinline muted autoplay></video>
+            </div>
+
+            <p id="camera-error" class="camera-error" hidden></p>
+
+            <div class="camera-actions">
+                <button type="button" id="camera-flip" class="camera-side" aria-label="Changer de caméra">⟲</button>
+                <button type="button" id="camera-shoot" class="camera-shoot" aria-label="Prendre la photo"></button>
+                <button type="button" id="camera-cancel" class="camera-side" aria-label="Fermer">✕</button>
+            </div>
+
+            <button type="button" id="camera-gallery" class="app-button camera-gallery">
+                Choisir dans la photothèque
+            </button>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
