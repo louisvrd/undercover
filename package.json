@@ -1,0 +1,12 @@
+{
+  "name": "undercover",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Le jeu de mots où il faut démasquer les imposteurs — PWA hors-ligne.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/core.test.js",
+    "words": "python tools/gen_words_js.py",
+    "serve": "python -m http.server 8000 --directory docs"
+  }
+}

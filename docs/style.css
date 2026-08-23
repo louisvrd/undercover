@@ -1,0 +1,420 @@
+/*
+ * Undercover — feuille de style de la PWA.
+ *
+ * Pensée pour le téléphone d'abord : cibles tactiles larges, encoches
+ * iOS respectées, aucune police ni ressource externe (le jeu doit se
+ * charger entièrement hors-ligne).
+ */
+
+:root {
+    --bg: #2c3e50;
+    --surface: #34495e;
+    --surface-deep: #243342;
+    --primary: #3498db;
+    --primary-dark: #2980b9;
+    --danger: #e74c3c;
+    --danger-dark: #c0392b;
+    --success: #2ecc71;
+    --warning: #f1c40f;
+    --purple: #9b59b6;
+    --text: #ecf0f1;
+    --text-muted: #a9b7c6;
+    --radius: 8px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* `.app-screen` est en flex : sans `!important`, l'attribut hidden ne
+   suffirait pas à masquer un écran. */
+[hidden] {
+    display: none !important;
+}
+
+html {
+    background: var(--bg);
+}
+
+body {
+    margin: 0;
+    /* viewport-fit=cover : on récupère la place sous l'encoche, mais il
+       faut alors écarter le contenu des bords nous-mêmes. */
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    background: var(--bg);
+    color: var(--text);
+    overscroll-behavior-y: contain; /* pas de rebond élastique façon page web */
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    font-family: inherit;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation; /* supprime le délai de 300 ms au tap */
+}
+
+/* ------------------------------------------------------------- structure */
+
+.app-container {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--danger);
+}
+
+.app-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.app-card {
+    background: var(--surface);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.app-card-header {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.app-card-body {
+    padding: 18px;
+}
+
+.section-title {
+    margin: 0 0 1.2rem;
+    font-size: 1.1rem;
+}
+
+.hint {
+    margin: 0.75rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.install-hint {
+    text-align: center;
+}
+
+/* --------------------------------------------------------- formulaires */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.app-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background: var(--surface-deep);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+.number-input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.number-input .form-control {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.btn-number {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    background: var(--surface-deep);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.btn-number:active {
+    background: var(--primary);
+}
+
+.app-button {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.app-button:active {
+    background: var(--primary-dark);
+}
+
+.danger-button {
+    background: var(--danger);
+}
+
+.danger-button:active {
+    background: var(--danger-dark);
+}
+
+/* --------------------------------------------------------------- rôles */
+
+.roles-setup {
+    margin: 1.2rem 0;
+    padding: 1.2rem;
+    background: var(--surface-deep);
+    border-radius: var(--radius);
+}
+
+.roles-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin: 1.2rem 0;
+}
+
+/* Fond sombre, pas blanc : le texte utilise --text, il serait invisible
+   sur du blanc. */
+.info-card {
+    padding: 0.9rem;
+    background: var(--surface-deep);
+    border-left: 4px solid var(--text-muted);
+    border-radius: var(--radius);
+}
+
+.info-card span {
+    display: block;
+    font-weight: 700;
+}
+
+.info-card small {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.info-card.civilian {
+    border-left-color: var(--primary);
+}
+
+.info-card.undercover {
+    border-left-color: var(--danger);
+}
+
+.info-card.mr-white {
+    border-left-color: var(--purple);
+}
+
+/* ------------------------------------------------------ noms des joueurs */
+
+.player-names-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin: 1.2rem 0;
+}
+
+/* ------------------------------------------------------ distribution */
+
+.turn-label {
+    margin: 0 0 1rem;
+    text-align: center;
+    font-size: 1.15rem;
+}
+
+.turn-label strong {
+    color: var(--primary);
+}
+
+.word-card {
+    margin: 1.2rem 0;
+    padding: 2rem 1rem;
+    background: var(--surface-deep);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius);
+    text-align: center;
+}
+
+.word-content {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: var(--danger);
+    overflow-wrap: break-word;
+}
+
+.word-card .hint {
+    text-align: center;
+}
+
+/* ---------------------------------------------------- listes de joueurs */
+
+.player-list {
+    margin-top: 0.75rem;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface-deep);
+    border-radius: var(--radius);
+}
+
+.player-item span {
+    flex: 1;
+    font-size: 1.05rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.player-item.eliminated {
+    opacity: 0.6;
+}
+
+.player-item.eliminated span {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.vote-button {
+    flex: 0 0 auto;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background: var(--danger);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.vote-button:active {
+    background: var(--danger-dark);
+}
+
+/* ---------------------------------------------------------- révélation */
+
+.winner-banner {
+    padding: 1.3rem;
+    background: var(--success);
+    border-radius: var(--radius);
+    color: #08301c;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.word-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.word-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface-deep);
+    border-radius: var(--radius);
+}
+
+.word-item span:first-child {
+    font-weight: 700;
+}
+
+.word-item span:last-child {
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.word-item.eliminated {
+    opacity: 0.6;
+}
+
+/* -------------------------------------------------------- notifications */
+
+.notification {
+    position: fixed;
+    left: 50%;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100vw - 32px);
+    padding: 0.9rem 1.5rem;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+
+.notification.error {
+    background: var(--danger);
+}
+
+.notification.warning {
+    background: var(--warning);
+    color: #4a3a00;
+}
+
+.notification.success {
+    background: var(--success);
+    color: #08301c;
+}
+
+.notification.fade-out {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notification {
+        transition: none;
+    }
+}

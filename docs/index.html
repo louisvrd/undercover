@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Undercover</title>
+    <meta name="description" content="Le jeu de mots où il faut démasquer les imposteurs. Fonctionne hors-ligne.">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#2c3e50">
+
+    <!-- iOS ignore le manifest pour l'icône et le mode plein écran -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Undercover">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Undercover</h1>
+        </header>
+
+        <!-- Écran 1 — configuration -->
+        <section id="setup-screen" class="app-screen">
+            <div class="app-card">
+                <div class="app-card-header">Configuration</div>
+                <div class="app-card-body">
+                    <div class="form-group">
+                        <label class="app-label" for="num-players">Nombre de joueurs</label>
+                        <div class="number-input">
+                            <button type="button" class="btn-number" data-step="-1" data-target="num-players" aria-label="Retirer un joueur">−</button>
+                            <input type="number" class="form-control" id="num-players" value="4" readonly>
+                            <button type="button" class="btn-number" data-step="1" data-target="num-players" aria-label="Ajouter un joueur">+</button>
+                        </div>
+                    </div>
+
+                    <div class="roles-setup">
+                        <h2 class="section-title">Rôles spéciaux</h2>
+
+                        <div class="form-group">
+                            <label class="app-label" for="num-undercover">Undercover</label>
+                            <div class="number-input">
+                                <button type="button" class="btn-number" data-step="-1" data-target="num-undercover" aria-label="Moins d'Undercover">−</button>
+                                <input type="number" class="form-control" id="num-undercover" value="1" readonly>
+                                <button type="button" class="btn-number" data-step="1" data-target="num-undercover" aria-label="Plus d'Undercover">+</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="app-label" for="num-mr-white">Mr. White</label>
+                            <div class="number-input">
+                                <button type="button" class="btn-number" data-step="-1" data-target="num-mr-white" aria-label="Moins de Mr. White">−</button>
+                                <input type="number" class="form-control" id="num-mr-white" value="0" readonly>
+                                <button type="button" class="btn-number" data-step="1" data-target="num-mr-white" aria-label="Plus de Mr. White">+</button>
+                            </div>
+                        </div>
+
+                        <p id="roles-hint" class="hint"></p>
+                    </div>
+
+                    <div class="roles-info">
+                        <div class="info-card civilian">
+                            <span>Civil</span>
+                            <small>Connaît le mot de la majorité</small>
+                        </div>
+                        <div class="info-card undercover">
+                            <span>Undercover</span>
+                            <small>Connaît un mot voisin</small>
+                        </div>
+                        <div class="info-card mr-white">
+                            <span>Mr. White</span>
+                            <small>N'a aucun mot</small>
+                        </div>
+                    </div>
+
+                    <div id="player-names" class="player-names-container"></div>
+
+                    <button id="start-game" class="app-button">Commencer la partie</button>
+                </div>
+            </div>
+
+            <p id="install-hint" class="hint install-hint" hidden></p>
+        </section>
+
+        <!-- Écran 2 — chacun découvre son mot -->
+        <section id="reveal-screen" class="app-screen" hidden>
+            <div class="app-card">
+                <div class="app-card-header">Distribution des mots</div>
+                <div class="app-card-body">
+                    <p class="turn-label">
+                        Passez l'appareil à <strong id="current-player"></strong>
+                    </p>
+
+                    <div id="word-card" class="word-card" hidden>
+                        <div id="word-content" class="word-content"></div>
+                        <p id="word-hint" class="hint"></p>
+                    </div>
+
+                    <div class="player-actions">
+                        <button id="show-word" class="app-button">Voir mon mot</button>
+                        <button id="next-player" class="app-button" hidden>
+                            <span id="next-label">Suivant</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Écran 3 — débat et éliminations -->
+        <section id="game-screen" class="app-screen" hidden>
+            <div id="winner-banner" class="winner-banner" hidden></div>
+
+            <div class="app-card">
+                <div class="app-card-header">Encore en jeu</div>
+                <div class="app-card-body">
+                    <p class="hint">Débattez à voix haute, puis éliminez un joueur.</p>
+                    <div id="active-list" class="player-list"></div>
+                </div>
+            </div>
+
+            <div class="app-card" id="eliminated-card" hidden>
+                <div class="app-card-header">Éliminés</div>
+                <div class="app-card-body">
+                    <div id="eliminated-list" class="player-list"></div>
+                </div>
+            </div>
+
+            <div class="app-card" id="reveal-card" hidden>
+                <div class="app-card-header">Révélation</div>
+                <div class="app-card-body">
+                    <div id="reveal-list" class="word-list"></div>
+                </div>
+            </div>
+
+            <button id="new-game" class="app-button danger-button">Nouvelle partie</button>
+        </section>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
