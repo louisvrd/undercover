@@ -10,7 +10,7 @@ from undercover.core import (
     Team,
     max_special_roles,
 )
-from undercover.words import WORD_GROUPS, WordGenerator
+from undercover.words import WORD_PAIRS, WordGenerator
 
 FOUR = ["Alice", "Bob", "Chloé", "David"]
 SIX = FOUR + ["Emma", "Farid"]
@@ -234,25 +234,40 @@ def test_undo_without_elimination_is_refused():
 # -- Générateur de mots ------------------------------------------------
 
 
-def test_pair_is_two_distinct_words_from_one_group():
+def test_pair_comes_from_the_dictionary():
     generator = WordGenerator(rng=random.Random(1))
-    for _ in range(200):
+    known = {frozenset(pair) for pair in WORD_PAIRS}
+
+    for _ in range(300):
         first, second = generator.pair()
         assert first != second
-        assert any({first, second} <= set(group) for group in WORD_GROUPS)
+        assert frozenset((first, second)) in known
 
 
-def test_pair_count_matches_the_groups():
-    generator = WordGenerator(groups=[("a", "b", "c"), ("d", "e")])
-    assert generator.pair_count() == 3 + 1
+def test_pair_order_is_drawn_too():
+    """Sinon le mot de la majorité serait toujours le premier écrit, et
+    connaître la liste révélerait son camp."""
+    generator = WordGenerator(pairs=[("a", "b")], rng=random.Random(0))
+    seen = {generator.pair() for _ in range(60)}
+    assert seen == {("a", "b"), ("b", "a")}
 
 
-def test_rejects_a_group_too_small_to_draw_from():
-    with pytest.raises(ValueError, match="moins de 2 mots"):
-        WordGenerator(groups=[("a", "b"), ("solo",)])
+def test_pair_count_is_the_number_of_pairs():
+    assert WordGenerator(pairs=[("a", "b"), ("c", "d")]).pair_count() == 2
 
 
-def test_shipped_groups_are_all_usable():
-    assert WordGenerator().pair_count() > 0
-    for group in WORD_GROUPS:
-        assert len(set(group)) >= 2
+def test_rejects_a_malformed_pair():
+    with pytest.raises(ValueError, match="deux mots distincts"):
+        WordGenerator(pairs=[("a", "b"), ("solo", "solo")])
+    with pytest.raises(ValueError, match="deux mots distincts"):
+        WordGenerator(pairs=[("a", "b", "c")])
+
+
+def test_shipped_pairs_are_all_usable():
+    assert WordGenerator().pair_count() == len(WORD_PAIRS)
+    for first, second in WORD_PAIRS:
+        assert first != second
+
+
+def test_no_duplicate_pair():
+    assert len({frozenset(p) for p in WORD_PAIRS}) == len(WORD_PAIRS)

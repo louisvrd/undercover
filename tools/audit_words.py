@@ -1,8 +1,8 @@
-"""Audit du dictionnaire de mots.
+"""Audit du dictionnaire de paires.
 
 Ne juge pas le sens — il sort les faits mesurables sur lesquels appuyer
-une relecture éditoriale : doublons, mots composés, mots rares, paires
-trop proches en surface.
+une relecture : doublons, paires miroir, mots composés, paires trop
+proches en surface.
 
     python tools/audit_words.py
 """
@@ -18,7 +18,9 @@ import unicodedata
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from undercover.words import THEMES, WORD_GROUPS, theme_of  # noqa: E402
+from undercover.words import PAIRS_BY_THEME, WORD_PAIRS, theme_of  # noqa: E402
+
+SIMILARITY_ALERT = 0.62
 
 
 def strip_accents(word: str) -> str:
@@ -32,100 +34,86 @@ def similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, strip_accents(a), strip_accents(b)).ratio()
 
 
+def section(title: str) -> None:
+    print()
+    print("=" * 62)
+    print(title)
+    print("=" * 62)
+
+
 def main() -> None:
-    total_words = sum(len(g) for g in WORD_GROUPS)
-    distinct = {w for g in WORD_GROUPS for w in g}
+    words = [w for pair in WORD_PAIRS for w in pair]
+    problems = 0
 
-    print("=" * 62)
-    print("VOLUME")
-    print("=" * 62)
-    print(f"  thèmes            : {len(THEMES)}")
-    print(f"  groupes           : {len(WORD_GROUPS)}")
-    print(f"  emplacements      : {total_words}")
-    print(f"  mots distincts    : {len(distinct)}")
-    print(f"  paires possibles  : {sum(len(g) * (len(g) - 1) // 2 for g in WORD_GROUPS)}")
-
-    # -- Doublons entre groupes ---------------------------------------
-    seen = collections.defaultdict(list)
-    for i, group in enumerate(WORD_GROUPS):
-        for word in group:
-            seen[word].append(i)
-    cross = {w: idx for w, idx in seen.items() if len(idx) > 1}
-
+    section("VOLUME")
+    print(f"  thèmes            : {len(PAIRS_BY_THEME)}")
+    print(f"  paires            : {len(WORD_PAIRS)}")
+    print(f"  mots utilisés     : {len(words)}")
+    print(f"  mots distincts    : {len(set(words))}")
     print()
-    print("=" * 62)
-    print(f"DOUBLONS ENTRE GROUPES ({len(cross)})")
-    print("=" * 62)
-    print("  Un mot dans deux groupes n'est pas fatal, mais il rend")
-    print("  l'indice ambigu : le joueur ignore de quel groupe il vient.")
-    print()
-    for word, idx in sorted(cross.items()):
-        themes = " + ".join(f"{theme_of(i)}#{i}" for i in idx)
-        print(f"  {word:<14} {themes}")
+    for theme, pairs in PAIRS_BY_THEME.items():
+        print(f"    {theme:<20} {len(pairs):>3} paires")
 
-    # -- Doublons internes --------------------------------------------
+    # -- Paires en double (mêmes deux mots, ordre indifférent) ---------
+    section("PAIRES EN DOUBLE")
+    normalised = collections.Counter(frozenset(p) for p in WORD_PAIRS)
+    duplicates = [p for p, n in normalised.items() if n > 1]
+    if duplicates:
+        problems += len(duplicates)
+        for pair in duplicates:
+            print(f"  {' / '.join(sorted(pair))}")
+    else:
+        print("  aucune")
+
+    # -- Mots réutilisés ----------------------------------------------
+    section("MOTS UTILISÉS DANS PLUSIEURS PAIRES")
+    print("  Pas un défaut en soi, mais un mot qui revient trop souvent")
+    print("  rend le jeu répétitif.")
     print()
-    print("=" * 62)
-    print("DOUBLONS DANS UN MÊME GROUPE")
-    print("=" * 62)
-    internal = [
-        (i, w) for i, g in enumerate(WORD_GROUPS)
-        for w, n in collections.Counter(g).items() if n > 1
-    ]
-    print(f"  {internal if internal else 'aucun'}")
+    repeats = {w: n for w, n in collections.Counter(words).items() if n > 1}
+    if repeats:
+        for word, count in sorted(repeats.items(), key=lambda kv: -kv[1]):
+            where = [
+                f"{a}/{b}" for a, b in WORD_PAIRS if word in (a, b)
+            ]
+            print(f"  {word:<14} {count}x   {', '.join(where)}")
+    else:
+        print("  aucun — chaque mot n'apparaît qu'une fois")
 
     # -- Mots composés -------------------------------------------------
-    print()
-    print("=" * 62)
-    print("MOTS COMPOSÉS OU SIGLES")
-    print("=" * 62)
+    section("MOTS COMPOSÉS OU SIGLES")
     print("  Plus durs à décrire en un seul indice.")
     print()
     compound = [
-        (i, w) for i, g in enumerate(WORD_GROUPS) for w in g
+        (i, w) for i, pair in enumerate(WORD_PAIRS) for w in pair
         if " " in w or "-" in w or (w.isupper() and len(w) > 1)
     ]
     for i, w in compound:
-        print(f"  {w:<18} {theme_of(i)}#{i}")
-    print(f"  -> {len(compound)} au total")
+        print(f"  {w:<18} {theme_of(i)}")
+    print(f"  -> {len(compound)}")
 
     # -- Paires trop proches en surface --------------------------------
+    section(f"PAIRES TROP PROCHES EN SURFACE (>= {SIMILARITY_ALERT})")
+    print("  Mesure l'ORTHOGRAPHE, pas le sens : « chèvre / cheval » y")
+    print("  remonte alors que les deux se décrivent très différemment.")
+    print("  À lire comme une liste à inspecter, pas comme un verdict.")
     print()
-    print("=" * 62)
-    print("PAIRES TROP PROCHES (ressemblance de forme >= 0.62)")
-    print("=" * 62)
-    print("  Si le tirage sort une de ces paires, l'Undercover est")
-    print("  quasi indémasquable : les deux mots se decrivent pareil.")
-    print()
-    close = []
-    for i, group in enumerate(WORD_GROUPS):
-        for a_idx, a in enumerate(group):
-            for b in group[a_idx + 1:]:
-                score = similarity(a, b)
-                if score >= 0.62:
-                    close.append((score, i, a, b))
-    for score, i, a, b in sorted(close, reverse=True):
-        print(f"  {score:.2f}  {a} / {b:<20} {theme_of(i)}#{i}")
-    print(f"  -> {len(close)} paires")
+    close = sorted(
+        (
+            (similarity(a, b), i, a, b)
+            for i, (a, b) in enumerate(WORD_PAIRS)
+            if similarity(a, b) >= SIMILARITY_ALERT
+        ),
+        reverse=True,
+    )
+    for score, i, a, b in close:
+        print(f"  {score:.2f}  {a} / {b:<22} {theme_of(i)}")
+    print(f"  -> {len(close)} sur {len(WORD_PAIRS)}")
 
-    # -- Groupes les plus homogènes ------------------------------------
-    print()
-    print("=" * 62)
-    print("HOMOGÉNÉITÉ MOYENNE PAR GROUPE (10 pires)")
-    print("=" * 62)
-    print("  Une moyenne haute = groupe dont beaucoup de paires se")
-    print("  ressemblent. À inspecter en priorite.")
-    print()
-    scores = []
-    for i, group in enumerate(WORD_GROUPS):
-        pairs = [
-            similarity(a, b)
-            for a_idx, a in enumerate(group) for b in group[a_idx + 1:]
-        ]
-        scores.append((sum(pairs) / len(pairs), i, group))
-    for avg, i, group in sorted(scores, reverse=True)[:10]:
-        print(f"  {avg:.3f}  {theme_of(i)}#{i:<3} {', '.join(group[:5])}…")
+    section("BILAN")
+    print(f"  problèmes bloquants : {problems}")
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -32,26 +32,41 @@ condition de victoire des imposteurs serait déjà remplie au premier tour.
 
 ## Le dictionnaire
 
-400 mots, 40 groupes de 10, répartis en 11 thèmes — **1800 paires
-possibles**. Quatre règles ont guidé la composition :
+**257 paires écrites à la main**, 514 mots dont aucun ne se répète,
+réparties en 11 thèmes.
 
-1. **Aucun synonyme.** « développeur » et « programmeur » se décrivent
+Une version précédente tirait deux mots au hasard dans des groupes de
+dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
+bonnes et d'autres non, sans moyen de trier. « gare » et « piscine »
+sont deux lieux de la ville, mais leurs indices n'ont rien en commun et
+l'Undercover est grillé au premier tour. Avec des paires explicites,
+**chaque tirage est validé**.
+
+Ce qui fait une bonne paire :
+
+1. **Même nature.** Deux fruits, deux métiers, deux instruments.
+2. **Une seule différence saillante.** « courgette » et « concombre » se
+   ressemblent, mais l'un se cuit et l'autre se croque. C'est cette
+   unique différence qui permet de démasquer l'Undercover.
+3. **Aucun synonyme.** « développeur » et « programmeur » se décrivent
    identiquement : les civils ne peuvent structurellement pas gagner.
-2. **Aucun hyperonyme.** Pas de « chaussure » à côté de « botte » : le
-   joueur qui a le mot général ne peut rien dire qui ne s'applique pas
-   aussi à l'autre.
-3. **Pas de différence de taille seule.** « lac » et « étang », c'est la
+4. **Aucun hyperonyme.** Pas de « chaussure » face à « botte ».
+5. **Pas de différence de taille seule.** « lac » et « étang », c'est la
    même chose en plus petit — indécidable en un indice.
-4. **Que des mots connus.** Un joueur qui reçoit « caracal » ne joue pas,
+6. **Que des mots connus.** Un joueur qui reçoit « caracal » ne joue pas,
    il se tait.
+
+L'**ordre de la paire est tiré au sort** à chaque partie : sans cela, le
+mot de la majorité serait toujours le premier écrit dans la liste, et un
+joueur qui la connaît saurait immédiatement dans quel camp il est.
 
 ```bash
 python tools/audit_words.py
 ```
 
-L'audit sort les doublons, les mots composés, les paires proches et
-l'homogénéité de chaque groupe. Il mesure la **forme** des mots, pas leur
-sens : « chèvre / cheval » y remonte alors que les deux se décrivent très
+L'audit sort les paires en double, les mots réutilisés, les mots composés
+et les paires proches. Il mesure la **forme** des mots, pas leur sens :
+« grêle / gel » y remonte alors que les deux se décrivent très
 différemment. À lire comme une liste de points à inspecter, pas comme un
 verdict.
 
@@ -121,7 +136,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            40 groupes, 11 thèmes
+  words.py            257 paires, 11 thèmes
   cli.py              terminal            -> core.py
 tests/
   test_core.py        35 tests Python

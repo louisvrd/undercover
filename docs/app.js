@@ -15,7 +15,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v8';
+const APP_VERSION = 'v9';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
