@@ -1,5 +1,3 @@
-Flask==3.0.0
-Werkzeug==3.0.1
-
-# Développement
+# La version console n'a besoin de rien : tout est en bibliothèque
+# standard. Seuls les tests demandent une dépendance.
 pytest==8.3.4

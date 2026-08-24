@@ -3,6 +3,8 @@
 Le jeu de mots où il faut démasquer les imposteurs. Un seul appareil, qui
 passe de main en main.
 
+**→ [louisvrd.github.io/undercover](https://louisvrd.github.io/undercover/)**
+
 Deux façades sur les mêmes règles :
 
 - **`docs/`** — une PWA installable sur iPhone et Android, **sans store**,
@@ -28,56 +30,69 @@ Le nombre de rôles spéciaux est plafonné à `(joueurs - 1) // 2` pour que
 les civils soient strictement majoritaires au coup d'envoi — sinon la
 condition de victoire des imposteurs serait déjà remplie au premier tour.
 
+## Le dictionnaire
+
+400 mots, 40 groupes de 10, répartis en 11 thèmes — **1800 paires
+possibles**. Quatre règles ont guidé la composition :
+
+1. **Aucun synonyme.** « développeur » et « programmeur » se décrivent
+   identiquement : les civils ne peuvent structurellement pas gagner.
+2. **Aucun hyperonyme.** Pas de « chaussure » à côté de « botte » : le
+   joueur qui a le mot général ne peut rien dire qui ne s'applique pas
+   aussi à l'autre.
+3. **Pas de différence de taille seule.** « lac » et « étang », c'est la
+   même chose en plus petit — indécidable en un indice.
+4. **Que des mots connus.** Un joueur qui reçoit « caracal » ne joue pas,
+   il se tait.
+
+```bash
+python tools/audit_words.py
+```
+
+L'audit sort les doublons, les mots composés, les paires proches et
+l'homogénéité de chaque groupe. Il mesure la **forme** des mots, pas leur
+sens : « chèvre / cheval » y remonte alors que les deux se décrivent très
+différemment. À lire comme une liste de points à inspecter, pas comme un
+verdict.
+
 ## Installer sur un téléphone
 
 L'app n'a besoin d'aucun store et d'aucun serveur. Il suffit de publier
 le dossier `docs/` sur une URL en **HTTPS** (obligatoire : sans lui, un
-navigateur refuse d'installer une PWA et de mettre le service worker en
-route).
-
-### Publier sur GitHub Pages
-
-```bash
-git init
-git add .
-git commit -m "Undercover"
-git branch -M main
-git remote add origin https://github.com/<TON-PSEUDO>/undercover.git
-git push -u origin main
-```
-
-Puis sur GitHub : **Settings → Pages → Source: Deploy from a branch →
-Branch `main`, dossier `/docs` → Save**. Au bout d'une minute le jeu est
-sur `https://<TON-PSEUDO>.github.io/undercover/`.
-
-En offre gratuite, GitHub Pages exige un dépôt **public**. Pour garder le
-code privé, Cloudflare Pages et Netlify acceptent les dépôts privés et
-fournissent aussi le HTTPS.
-
-### Ajouter à l'écran d'accueil
+navigateur refuse d'installer une PWA et de lancer le service worker).
 
 | | Geste |
 | --- | --- |
 | **iPhone** | Ouvrir l'URL **dans Safari** (Chrome iOS ne sait pas installer), bouton Partager → « Sur l'écran d'accueil » |
 | **Android** | Chrome propose « Installer l'application » — l'app affiche aussi son propre bouton |
 
-Une fois installée : icône sur l'écran d'accueil, plein écran sans barre
-d'adresse, et **jouable en avion**.
+Les photos de profil et la composition du groupe restent dans le
+stockage du navigateur, sur l'appareil. Rien n'est envoyé nulle part.
 
-### Mettre à jour l'app
+### Publier une mise à jour
 
-Un `git push` suffit — les téléphones récupèrent la nouvelle version tout
-seuls. **Mais** il faut incrémenter `CACHE_VERSION` dans `docs/sw.js`,
-sinon le service worker continue de servir l'ancienne version depuis son
-cache.
+```bash
+python tools/gen_words_js.py   # si les mots ont changé
+git add -A && git commit -m "..." && git push
+```
+
+**Incrémenter `CACHE_VERSION` dans `docs/sw.js` ET `APP_VERSION` dans
+`docs/app.js`** — les deux doivent rester identiques, le numéro est
+affiché en bas de l'écran de configuration pour savoir d'un coup d'œil ce
+qui tourne sur un téléphone.
+
+GitHub Pages sert les fichiers en `max-age=600`. Le service worker
+contourne ce cache avec `new Request(url, { cache: 'reload' })` : sans
+cela, une version installée juste après un déploiement re-cache les
+anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 
 ## Développement
 
 ```bash
-npm run serve     # http://127.0.0.1:8000  (python -m http.server sur docs/)
-npm test          # tests JavaScript du moteur
-python -m pytest  # tests Python du moteur
-python -m undercover.cli   # version console
+python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
+python -m undercover.cli                      # version console
+python -m pytest                              # 35 tests Python
+node --test tests/core.test.js                # 28 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -90,9 +105,6 @@ python tools/gen_words_js.py   # docs/words.js  <- undercover/words.py
 python tools/gen_icons.py      # docs/icons/*.png
 ```
 
-`docs/words.js` est produit depuis `undercover/words.py` : la liste des
-mots n'est saisie qu'une fois, les deux versions ne peuvent pas diverger.
-
 ## Structure
 
 ```
@@ -101,20 +113,23 @@ docs/                 la PWA — c'est ce qui est publié
   app.js              interface           -> core.js
   core.js             règles, aucune I/O
   words.js            généré depuis words.py
+  photos.js           vignettes + stockage local
+  camera.js           capture via getUserMedia
   style.css
   manifest.webmanifest
   sw.js               cache hors-ligne
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            40 groupes de 10 mots, 1800 paires
+  words.py            40 groupes, 11 thèmes
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        31 tests Python
-  core.test.js        24 tests JavaScript, les mêmes cas
+  test_core.py        35 tests Python
+  core.test.js        28 tests JavaScript, les mêmes cas
 tools/
-  gen_words_js.py
-  gen_icons.py
+  gen_words_js.py     words.py  -> words.js
+  gen_icons.py        icônes de la PWA
+  audit_words.py      audit du dictionnaire
 ```
 
 ### Le moteur existe en deux exemplaires
@@ -125,8 +140,17 @@ gardant une version console.
 
 Le garde-fou : `tests/core.test.js` rejoue **les mêmes cas** que
 `tests/test_core.py` — plafond des rôles, distribution, les deux
-conditions de victoire, doubles éliminations. Si un moteur dérive de
+conditions de victoire, annulation d'élimination. Si un moteur dérive de
 l'autre, une suite casse.
 
 Si tu touches aux règles, modifie les deux fichiers et lance les deux
 suites.
+
+### Pourquoi la caméra n'utilise pas `<input type="file">`
+
+Dans une PWA lancée depuis l'écran d'accueil iOS, cet input ouvre
+l'appareil photo mais ne reçoit jamais le flux : l'écran reste noir. Le
+même code marche dans Safari. `getUserMedia`, autorisé pour les apps de
+l'écran d'accueil depuis iOS 14.3, n'a pas ce défaut — d'où `camera.js`.
+La photothèque reste accessible via un `<input type="file">` classique,
+qui lui n'a jamais été cassé.
