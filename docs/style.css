@@ -372,62 +372,118 @@ button {
 
 /* ------------------------------------------------------ noms des joueurs */
 
+/* Grille de cartes : 3 par ligne sur un téléphone standard, 4 dès que
+   l'écran s'élargit. `auto-fill` s'en charge sans media query. */
 .player-names-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 10px;
     margin: 1.1rem 0;
 }
 
-.player-input {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
+.player-card {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    transition: border-color 0.18s, transform 0.14s var(--ease);
+    animation: slide-in 0.3s var(--ease) both;
 }
 
-.player-input .form-control {
-    flex: 1;
-    min-width: 0; /* sinon l'input refuse de rétrécir dans le flex */
+.player-card.has-photo {
+    border-color: var(--accent);
 }
 
-.avatar-button {
-    flex: 0 0 auto;
+/* La photo occupe toute la carte ; le nom se pose par-dessus. */
+.player-card-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     padding: 0;
-    border: 2px dashed var(--line-strong);
-    border-radius: 50%;
+    border: none;
     background: none;
     cursor: pointer;
     line-height: 0;
-    transition: transform 0.14s var(--ease), border-color 0.14s;
 }
 
-.avatar-button:active {
-    transform: scale(0.92);
-    border-color: var(--accent);
+.player-card-photo:active {
+    transform: scale(0.96);
 }
 
-/* Une fois la photo prise, le pointillé « à remplir » n'a plus lieu d'être. */
-.avatar-button:has(img) {
-    border-style: solid;
-    border-color: var(--accent);
+.player-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-.avatar-clear {
-    flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+.player-card-initial {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, var(--elev-2), var(--bg-deep));
+    color: var(--muted);
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.player-card.has-photo .player-card-initial {
+    background: none;
+}
+
+/* Champ posé sur la carte, avec un voile sombre pour rester lisible
+   même sur une photo claire. */
+.player-card-name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 20px 6px 7px;
+    border: none;
+    background: linear-gradient(to top, rgba(6, 10, 15, 0.92) 45%, transparent);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    text-overflow: ellipsis;
+}
+
+.player-card-name::placeholder {
+    color: #6d829a;
+    font-weight: 500;
+}
+
+.player-card-name:focus {
+    outline: none;
+    background: linear-gradient(to top, rgba(6, 10, 15, 0.97) 55%, rgba(6, 10, 15, 0.5));
+    box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.player-card-clear {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 26px;
+    height: 26px;
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: var(--elev-2);
-    color: var(--muted);
-    font-size: 1.15rem;
+    background: rgba(6, 10, 15, 0.72);
+    color: #fff;
+    font-size: 1.05rem;
+    line-height: 1;
     cursor: pointer;
 }
 
-.avatar-clear:active {
+.player-card-clear:active {
     background: var(--accent);
-    color: #fff;
 }
 
 /* ------------------------------------------------------ distribution */

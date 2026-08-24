@@ -147,26 +147,41 @@ function nameInputs() {
   return [...el('player-names').querySelectorAll('input[type="text"]')];
 }
 
-/** Redessine la pastille d'une ligne selon sa photo brouillon. */
-function refreshRowAvatar(row, index) {
-  const button = row.querySelector('.avatar-button');
-  const photo = state.draftPhotos[index] ?? null;
-  const name = row.querySelector('input[type="text"]').value.trim();
+/** Contenu de la carte : la photo en grand, ou l'initiale à défaut. */
+function cardFace(name, photo) {
+  if (photo) {
+    const image = document.createElement('img');
+    image.className = 'player-card-img';
+    image.src = photo;
+    image.alt = ''; // décoratif : le nom est écrit juste en dessous
+    return image;
+  }
 
-  button.replaceChildren(avatarElement(name || '?', photo, 'avatar-sm'));
-  button.setAttribute(
-    'aria-label',
-    photo ? `Changer la photo de ${name || `joueur ${index + 1}`}`
-          : `Ajouter une photo pour ${name || `joueur ${index + 1}`}`,
-  );
-  row.querySelector('.avatar-clear').hidden = !photo;
+  const placeholder = document.createElement('span');
+  placeholder.className = 'player-card-initial';
+  placeholder.textContent = name ? [...name][0].toUpperCase() : '+';
+  placeholder.setAttribute('aria-hidden', 'true');
+  return placeholder;
 }
 
-async function pickPhoto(row, index, file) {
+/** Redessine une carte selon sa photo brouillon. */
+function refreshCard(card, index) {
+  const face = card.querySelector('.player-card-photo');
+  const photo = state.draftPhotos[index] ?? null;
+  const name = card.querySelector('.player-card-name').value.trim();
+  const who = name || `joueur ${index + 1}`;
+
+  face.replaceChildren(cardFace(name, photo));
+  face.setAttribute('aria-label', photo ? `Changer la photo de ${who}` : `Ajouter une photo pour ${who}`);
+  card.querySelector('.player-card-clear').hidden = !photo;
+  card.classList.toggle('has-photo', Boolean(photo));
+}
+
+async function pickPhoto(card, index, file) {
   if (!file) return;
   try {
     state.draftPhotos[index] = await fileToAvatar(file);
-    refreshRowAvatar(row, index);
+    refreshCard(card, index);
   } catch (error) {
     notify(error.message, 'error');
   }
@@ -175,7 +190,7 @@ async function pickPhoto(row, index, file) {
 /* ---------------------------------------------------------------- caméra */
 
 const camera = new Camera();
-let cameraTarget = null; // { row, index } de la ligne en cours de photo
+let cameraTarget = null; // { card, index } de la carte en cours de photo
 
 // Input photothèque unique, hors de la modale : un <input type="file">
 // visible dans une PWA iOS peut perdre le focus de la page à sa fermeture.
@@ -191,8 +206,8 @@ function cameraError(message) {
   el('camera-shoot').disabled = Boolean(message);
 }
 
-async function openCamera(row, index, name) {
-  cameraTarget = { row, index };
+async function openCamera(card, index, name) {
+  cameraTarget = { card, index };
   el('camera-who').textContent = name || `joueur ${index + 1}`;
   cameraError(null);
   el('camera-modal').hidden = false;
@@ -216,7 +231,7 @@ function closeCamera() {
 
 function shoot() {
   if (!cameraTarget) return;
-  const { row, index } = cameraTarget;
+  const { card, index } = cameraTarget;
   try {
     state.draftPhotos[index] = camera.grab();
   } catch (error) {
@@ -224,7 +239,8 @@ function shoot() {
     return;
   }
   closeCamera();
-  refreshRowAvatar(row, index);
+  refreshCard(card, index);
+  haptic(20);
 }
 
 async function flipCamera() {
@@ -241,39 +257,42 @@ galleryInput.addEventListener('change', async () => {
   galleryInput.value = ''; // pour que reprendre la même photo redéclenche 'change'
   if (!file || !cameraTarget) return;
 
-  const { row, index } = cameraTarget;
+  const { card, index } = cameraTarget;
   closeCamera();
-  await pickPhoto(row, index, file);
+  await pickPhoto(card, index, file);
 });
 
-function buildPlayerRow(index, value) {
-  const row = document.createElement('div');
-  row.className = 'player-input';
+function buildPlayerCard(index, value) {
+  const card = document.createElement('div');
+  card.className = 'player-card';
 
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'avatar-button';
-  button.addEventListener('click', () =>
-    openCamera(row, index, row.querySelector('input[type="text"]').value.trim()),
-  );
+  const face = document.createElement('button');
+  face.type = 'button';
+  face.className = 'player-card-photo';
+  face.addEventListener('click', () => openCamera(card, index, name.value.trim()));
 
   const name = document.createElement('input');
   name.type = 'text';
-  name.className = 'form-control';
+  name.className = 'player-card-name';
   name.placeholder = `Joueur ${index + 1}`;
   name.autocomplete = 'off';
+  name.maxLength = 14; // au-delà, le nom déborde de la carte
   name.value = value;
 
   // Un joueur qui revient retrouve sa photo dès que son nom est écrit.
   name.addEventListener('change', () => {
     const known = state.photos[name.value.trim()];
     if (known && !state.draftPhotos[index]) state.draftPhotos[index] = known;
-    refreshRowAvatar(row, index);
+    refreshCard(card, index);
+  });
+  name.addEventListener('input', () => {
+    // L'initiale du placeholder suit la frappe tant qu'il n'y a pas de photo.
+    if (!state.draftPhotos[index]) refreshCard(card, index);
   });
 
   const clear = document.createElement('button');
   clear.type = 'button';
-  clear.className = 'avatar-clear';
+  clear.className = 'player-card-clear';
   clear.textContent = '×';
   clear.hidden = true;
   clear.setAttribute('aria-label', 'Retirer la photo');
@@ -281,12 +300,12 @@ function buildPlayerRow(index, value) {
     const who = name.value.trim();
     state.draftPhotos[index] = null;
     if (who) removePhoto(who);
-    refreshRowAvatar(row, index);
+    refreshCard(card, index);
   });
 
-  row.append(button, name, clear);
-  refreshRowAvatar(row, index);
-  return row;
+  card.append(face, name, clear);
+  refreshCard(card, index);
+  return card;
 }
 
 function renderNameInputs() {
@@ -296,7 +315,7 @@ function renderNameInputs() {
   container.replaceChildren();
   for (let i = 0; i < state.numPlayers; i += 1) {
     // Priorité : ce qui est déjà tapé, sinon la composition mémorisée.
-    container.appendChild(buildPlayerRow(i, typed[i] ?? state.pendingNames[i] ?? ''));
+    container.appendChild(buildPlayerCard(i, typed[i] ?? state.pendingNames[i] ?? ''));
   }
 }
 
