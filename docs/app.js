@@ -15,7 +15,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v7';
+const APP_VERSION = 'v8';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -522,6 +522,7 @@ function render() {
 
   el('eliminated-card').hidden = game.eliminatedPlayers.length === 0;
   el('undo-elimination').hidden = !game.canUndo;
+  el('peek-open').hidden = over; // plus rien à cacher une fois la partie finie
 
   const banner = el('winner-banner');
   banner.hidden = !over;
@@ -551,6 +552,50 @@ function eliminate(name) {
     haptic(35);
   }
   render();
+}
+
+/* ------------------------------------------------- revoir son mot */
+
+/**
+ * Un joueur qui a oublié son mot peut le reconsulter en cours de partie.
+ *
+ * Rien n'empêche de regarder le mot d'un autre : sur un seul téléphone
+ * qui circule, ce n'est de toute façon pas défendable. On se contente
+ * donc de le rendre pratique, et de rappeler de masquer avant de rendre
+ * l'appareil.
+ */
+function openPeek() {
+  const list = el('peek-list');
+  list.replaceChildren();
+
+  game.activePlayers.forEach((name) => {
+    const row = playerRow(name);
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => showPeekWord(name));
+    list.appendChild(row);
+  });
+  stagger(list);
+
+  el('peek-title').textContent = 'Qui veut revoir son mot ?';
+  el('peek-card').hidden = true;
+  list.hidden = false;
+  el('peek-modal').hidden = false;
+}
+
+function showPeekWord(name) {
+  const word = game.wordOf(name);
+
+  el('peek-title').textContent = name;
+  el('peek-word').textContent = word ?? 'Mr. White';
+  el('peek-list').hidden = true;
+  el('peek-card').hidden = false;
+  haptic(15);
+}
+
+function closePeek() {
+  el('peek-modal').hidden = true;
+  el('peek-card').hidden = true;
+  el('peek-list').hidden = false;
 }
 
 function undoElimination() {
@@ -670,6 +715,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 el('undo-elimination').addEventListener('click', undoElimination);
+el('peek-open').addEventListener('click', openPeek);
+el('peek-close').addEventListener('click', closePeek);
 el('start-game').addEventListener('click', startGame);
 el('show-word').addEventListener('click', showWord);
 el('next-player').addEventListener('click', nextPlayer);

@@ -121,6 +121,7 @@
                 <div class="app-card-body">
                     <p class="hint">Débattez à voix haute, puis éliminez un joueur.</p>
                     <div id="active-list" class="player-list"></div>
+                    <button type="button" id="peek-open" class="undo-button">👁 Revoir mon mot</button>
                 </div>
             </div>
 
@@ -143,6 +144,22 @@
 
             <button id="new-game" class="app-button danger-button">Nouvelle partie</button>
         </section>
+    </div>
+
+    <!-- Revoir son mot en cours de partie -->
+    <div id="peek-modal" class="camera-modal" hidden>
+        <div class="camera-sheet">
+            <p class="camera-title" id="peek-title">Qui veut revoir son mot ?</p>
+
+            <div id="peek-list" class="player-list"></div>
+
+            <div id="peek-card" class="word-card" hidden>
+                <div id="peek-word" class="word-content"></div>
+                <p class="hint">Masquez avant de rendre le téléphone.</p>
+            </div>
+
+            <button type="button" id="peek-close" class="app-button danger-button">Masquer</button>
+        </div>
     </div>
 
     <!-- Caméra intégrée : voir camera.js pour la raison -->

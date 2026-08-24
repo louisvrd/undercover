@@ -17,6 +17,11 @@ vérifie les deux premières automatiquement :
    même chose en plus petit — indécidable en un indice.
 4. **Que des mots connus.** Un joueur qui reçoit « caracal » ou
    « borsalino » ne joue pas, il se tait.
+5. **Dix choses de même nature.** Un groupe trop large est aussi mauvais
+   qu'un groupe trop serré : « gare » et « piscine » sont deux lieux de
+   la ville, mais leurs indices n'ont rien en commun et l'Undercover est
+   grillé au premier tour. Chaque groupe réunit dix objets du même type,
+   qui ne diffèrent que par un détail.
 """
 
 from __future__ import annotations
@@ -50,18 +55,18 @@ THEMES: dict[str, tuple[tuple[str, ...], ...]] = {
     ),
     "Maison": (
         ("salon", "cuisine", "chambre", "garage", "cave", "grenier", "couloir", "balcon", "jardin", "escalier"),
-        ("table", "chaise", "canapé", "lit", "armoire", "étagère", "bureau", "tabouret", "matelas", "coussin"),
+        ("table", "chaise", "canapé", "lit", "armoire", "étagère", "bureau", "tabouret", "hamac", "coussin"),
         ("assiette", "verre", "fourchette", "couteau", "cuillère", "casserole", "poêle", "four", "frigo", "bouilloire"),
         ("douche", "baignoire", "savon", "serviette", "shampooing", "peigne", "rasoir", "éponge", "brosse", "miroir"),
     ),
     "Transport": (
         ("voiture", "camion", "bus", "moto", "vélo", "trottinette", "tracteur", "ambulance", "taxi", "caravane"),
-        ("avion", "hélicoptère", "fusée", "montgolfière", "parachute", "drone", "planeur", "satellite", "ovni", "aéroport"),
+        ("avion", "hélicoptère", "fusée", "montgolfière", "parachute", "drone", "planeur", "satellite", "navette", "deltaplane"),
         ("voilier", "yacht", "ferry", "péniche", "sous-marin", "canoë", "radeau", "pédalo", "barque", "gondole"),
     ),
     "Nature": (
         ("montagne", "volcan", "falaise", "canyon", "dune", "grotte", "île", "plage", "désert", "forêt"),
-        ("océan", "lac", "rivière", "cascade", "source", "puits", "fontaine", "arrosoir", "robinet", "tuyau"),
+        ("arrosoir", "râteau", "pelle", "brouette", "tondeuse", "sécateur", "tuyau", "graine", "pot", "engrais"),
         ("pluie", "neige", "vent", "orage", "brouillard", "arc-en-ciel", "nuage", "soleil", "grêle", "gel"),
         ("chêne", "sapin", "palmier", "cactus", "rose", "tulipe", "marguerite", "bambou", "lierre", "herbe"),
     ),
@@ -69,7 +74,7 @@ THEMES: dict[str, tuple[tuple[str, ...], ...]] = {
         ("football", "rugby", "basketball", "volley", "handball", "hockey", "tennis", "badminton", "ping-pong", "pétanque"),
         ("natation", "course", "saut", "escalade", "ski", "surf", "boxe", "judo", "danse", "yoga"),
         ("échecs", "dames", "cartes", "dés", "dominos", "scrabble", "monopoly", "puzzle", "loto", "billard"),
-        ("ballon", "toboggan", "balançoire", "trampoline", "bille", "craie", "corde", "sifflet", "chronomètre", "médaille"),
+        ("ballon", "raquette", "filet", "panier", "but", "sifflet", "chronomètre", "médaille", "trophée", "casque"),
     ),
     "Métiers": (
         ("médecin", "infirmier", "dentiste", "pharmacien", "vétérinaire", "chirurgien", "ambulancier", "opticien", "psychologue", "kiné"),
@@ -85,11 +90,11 @@ THEMES: dict[str, tuple[tuple[str, ...], ...]] = {
     ),
     "École et bureau": (
         ("stylo", "crayon", "gomme", "règle", "cahier", "classeur", "ciseaux", "colle", "agrafeuse", "calculatrice"),
-        ("professeur", "élève", "cantine", "récréation", "devoirs", "examen", "note", "tableau", "cartable", "cour"),
+        ("maths", "français", "histoire", "géographie", "physique", "chimie", "biologie", "anglais", "sport", "musique"),
     ),
     "Ville et voyage": (
-        ("parc", "marché", "église", "hôpital", "école", "mairie", "bibliothèque", "piscine", "stade", "gare"),
-        ("valise", "passeport", "billet", "hôtel", "camping", "douane", "souvenir", "plan", "appareil", "boussole"),
+        ("boulangerie", "pharmacie", "librairie", "coiffeur", "banque", "supermarché", "fleuriste", "restaurant", "poste", "bijouterie"),
+        ("château", "cathédrale", "phare", "pont", "tour", "statue", "fontaine", "ruine", "temple", "arène"),
     ),
 }
 
