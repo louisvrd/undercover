@@ -10,7 +10,7 @@
  * version depuis leur cache.
  */
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = `undercover-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -31,7 +31,16 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        // `cache: 'reload'` est indispensable : sans lui, addAll passe par
+        // le cache HTTP du navigateur. GitHub Pages sert les fichiers en
+        // max-age=600, donc une nouvelle version installée dans les dix
+        // minutes suivant un déploiement re-cachait les ANCIENS fichiers.
+        cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))),
+      )
+      .then(() => self.skipWaiting()),
   );
 });
 

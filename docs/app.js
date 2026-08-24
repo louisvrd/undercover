@@ -12,6 +12,11 @@ import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
 import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
 import { Camera, isCameraSupported } from './camera.js';
 
+// Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
+// l'écran de configuration pour savoir d'un coup d'œil quelle version
+// tourne réellement sur un téléphone.
+const APP_VERSION = 'v6';
+
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
 const ROSTER_KEY = 'undercover:roster';
@@ -673,6 +678,8 @@ el('new-game').addEventListener('click', () => {
   window.location.reload();
 });
 
+el('app-version').textContent = APP_VERSION;
+
 state.photos = loadPhotos();
 applyRoster();
 renderNameInputs();
@@ -681,6 +688,22 @@ setupInstallHint();
 resume();
 
 if ('serviceWorker' in navigator) {
+  // Le nouveau service worker prend la main (skipWaiting + clients.claim),
+  // mais la page affichée vient encore de l'ancien cache. On la recharge
+  // pour éviter le « fermer et rouvrir deux fois » à chaque mise à jour.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+
+    if (game) {
+      // Partie en cours : on ne recharge pas sous les doigts des joueurs.
+      notify("Mise à jour prête — elle s'appliquera à la prochaine ouverture.", 'info');
+      return;
+    }
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {
       // Sans service worker le jeu marche encore, il ne sera juste pas

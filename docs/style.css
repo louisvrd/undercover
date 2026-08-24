@@ -170,6 +170,15 @@ button {
     text-align: center;
 }
 
+.version-tag {
+    margin: 0.2rem 0 0;
+    text-align: center;
+    color: var(--muted);
+    opacity: 0.5;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+}
+
 /* --------------------------------------------------------- formulaires */
 
 .form-group {
