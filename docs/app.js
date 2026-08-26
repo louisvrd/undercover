@@ -21,7 +21,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v20';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -266,12 +266,51 @@ function renderMembers() {
     const row = playerRow(name);
     row.classList.add('tappable');
     row.addEventListener('click', () => openProfileSheet({ mode: 'edit', index, name }));
+    row.appendChild(moveButtons(index));
     list.appendChild(row);
   });
   stagger(list);
 
   el('group-members').hidden = state.editing.members.length === 0;
   el('member-add').hidden = state.editing.members.length >= MAX_PLAYERS;
+}
+
+/**
+ * Les flèches qui déplacent un joueur dans le tour de table.
+ *
+ * L'ordre du groupe n'est pas décoratif : c'est lui qui décide qui pioche
+ * après qui, et donc qui parle après qui. L'app ne peut pas le deviner —
+ * elle ne sait pas comment la table est assise.
+ */
+function moveButtons(index) {
+  const box = document.createElement('span');
+  box.className = 'member-move';
+
+  [['↑', -1], ['↓', 1]].forEach(([glyphe, delta]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'move-button';
+    button.textContent = glyphe;
+    button.setAttribute('aria-label', delta < 0 ? 'Monter' : 'Descendre');
+    button.disabled = index + delta < 0 || index + delta >= state.editing.members.length;
+    button.addEventListener('click', (event) => {
+      event.stopPropagation(); // sinon la fiche du joueur s'ouvrirait
+      moveMember(index, delta);
+    });
+    box.appendChild(button);
+  });
+
+  return box;
+}
+
+function moveMember(index, delta) {
+  const members = state.editing.members;
+  const cible = index + delta;
+  if (cible < 0 || cible >= members.length) return;
+
+  [members[index], members[cible]] = [members[cible], members[index]];
+  haptic(12);
+  renderMembers();
 }
 
 /** Écrit le groupe en cours d'édition et renvoie sa version enregistrée. */

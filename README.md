@@ -239,12 +239,19 @@ nombre d'Undercover et de Mr. White. C'est ce qui évite de ressaisir six
 prénoms à chaque soirée — et ce qui permet à l'app d'annoncer **qui
 pioche**, au lieu de laisser le téléphone tourner au hasard.
 
-La liste du groupe, c'est **l'ordre où les profils ont été créés** —
-`claim_order`, celui du passage du téléphone. Surtout pas l'ordre des
-cartes : chacun prend celle qu'il veut, donc `names` est brassé et ne dit
-rien de qui a joué après qui. Confondre les deux fait tourner les parties
-suivantes sur une liste déjà mélangée, ce qui annule tout l'intérêt de la
-rotation.
+La liste du groupe, c'est **le tour de table**. Elle décide qui pioche
+après qui, et donc qui parle après qui.
+
+À la première partie d'un groupe neuf, elle se remplit dans l'ordre où les
+profils sont créés — `claim_order`, celui du passage du téléphone. Surtout
+pas l'ordre des cartes : chacun prend celle qu'il veut, donc `names` est
+brassé et ne dit rien de qui a joué après qui.
+
+Ensuite elle ne bouge plus toute seule, et **les flèches de l'éditeur sont
+le seul moyen de la corriger**. C'est voulu : l'app ne sait pas comment la
+table est assise, et une liste enregistrée de travers ne se répare pas en
+jouant — chaque partie ne fait qu'en tirer une rotation, donc le désordre
+se reconduit indéfiniment. Il faut pouvoir le dire à la main.
 
 L'ordre de pioche est une **rotation** de cette liste : le premier est
 tiré au sort, puis on suit la liste en bouclant. Avec un groupe

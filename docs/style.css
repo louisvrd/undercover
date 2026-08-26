@@ -1213,3 +1213,36 @@ button {
     background: var(--elev-1);
     color: var(--text);
 }
+
+/* ------------------------------------- réordonner le tour de table */
+
+/* `.player-item span` étire le prénom : il faut une règle plus précise
+   pour que le bloc de flèches garde sa largeur. */
+.player-item .member-move {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.25rem;
+}
+
+.move-button {
+    width: 34px;
+    height: 34px;
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.16s, border-color 0.16s;
+}
+
+.move-button:active:not(:disabled) {
+    border-color: var(--line-strong);
+    color: var(--text);
+}
+
+.move-button:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
