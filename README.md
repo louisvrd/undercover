@@ -137,8 +137,8 @@ trois au maximum. « pomme » tombe tantôt avec « poire », tantôt avec
 « coing » : le tenir ne renseigne sur rien. Un dictionnaire où chaque mot
 n'aurait qu'un seul partenaire est entièrement prévisible dès qu'on le
 connaît — défaut supportable à 257 paires, rédhibitoire à 2500. La
-répartition actuelle : 2690 mots dans une seule paire, 850 dans deux,
-204 dans trois.
+répartition actuelle : 2641 mots dans une seule paire, 861 dans deux,
+215 dans trois — soit 3717 mots distincts pour 5008 cartes distribuées.
 
 Accessoirement, c'est ce qui rend la taille atteignable. Sans
 réutilisation, 2500 paires exigeraient 5000 mots distincts, ce qui force
