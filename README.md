@@ -109,8 +109,8 @@ qu'aucun code d'annulation n'ait à s'en occuper.
 
 ## Le dictionnaire
 
-**2624 paires écrites à la main**, 3515 mots distincts, réparties en
-107 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
+**2104 paires écrites à la main**, 2229 mots distincts, réparties en
+64 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -184,7 +184,7 @@ Aucune mesure de forme ne les attrape : « bain » et « douche » ne se
 ressemblent pas, « or » et « argent » non plus. Elles s'appliquent à la
 relecture, thème par thème.
 
-Cette relecture a été faite sur les 107 thèmes et a retiré 583 paires :
+Cette relecture a été faite sur les thèmes et a retiré 583 paires :
 59 duos réflexes (`or / argent`, `plafond / plancher`, `clavier / souris`,
 `main / pied`), et le reste en synonymes, hyperonymes et différences de
 taille. Elle a aussi coûté six thèmes entiers, écrits en cherchant le
@@ -195,6 +195,22 @@ risque permanent quand on vise un gros dictionnaire.
 Le vocabulaire libéré a été réinvesti en **recombinaisons** : des mots
 déjà validés appariés autrement, ce que le plafond de trois paires par
 mot autorise. C'est plus sûr que d'aller chercher des mots rares.
+
+### La règle 6 est la plus coûteuse
+
+Une seconde passe, plus large, a retiré **920 paires** de plus. Le motif
+est toujours le même : du vocabulaire de métier, correct mais indescriptible
+en un indice. `turbot`, `steeple`, `sérac`, `galène`, `poolish`,
+`télérupteur`, `corégone`, `mâchicoulis`. Trente-neuf thèmes entiers sont
+partis — plomberie, minéraux, couture, fromages, races de chevaux — parce
+qu'ils l'étaient d'un bout à l'autre.
+
+C'est le piège permanent d'un gros dictionnaire : chaque famille de mots
+paraît inépuisable tant qu'on ne se demande pas si un joueur saurait en
+décrire les membres. Un thème sonne riche et n'est qu'un glossaire.
+
+Le compte est donc passé de 2624 à 2104. Il vaut mieux : une paire que
+personne ne sait décrire ne fait pas une manche, elle la gâche.
 
 ### Le mode Brawl Stars
 
@@ -359,7 +375,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            2624 paires, 107 thèmes + 1 exclusif
+  words.py            2104 paires, 64 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
   test_core.py        68 tests Python
