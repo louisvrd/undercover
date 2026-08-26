@@ -1177,17 +1177,62 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("crampe", "fourmillement"), ("frisson", "sueur"), ("nausée", "hoquet"),
         ("démangeaison", "brûlure"),
     ),
+    "Brawl Stars": (
+        ("Bull", "Frank"), ("Rosa", "Jacky"), ("Darryl", "Ash"),
+        ("Hank", "Buster"), ("Draco", "Meg"), ("Frank", "Rosa"),
+        ("Bull", "Jacky"), ("Ash", "Buster"), ("Piper", "Brock"),
+        ("Bea", "Nani"), ("Belle", "Mandy"), ("Angelo", "Janet"),
+        ("Brock", "Bea"), ("Piper", "Belle"), ("Nani", "Angelo"),
+        ("Mandy", "Janet"), ("Barley", "Dynamike"), ("Tick", "Sprout"),
+        ("Grom", "Willow"), ("Juju", "Sprout"), ("Dynamike", "Grom"),
+        ("Barley", "Willow"), ("Mortis", "Crow"), ("Leon", "Edgar"),
+        ("Fang", "Buzz"), ("Stu", "Kenji"), ("Melodie", "Lily"),
+        ("Cordelius", "Shade"), ("Crow", "Leon"), ("Edgar", "Fang"),
+        ("Poco", "Byron"), ("Pam", "Gus"), ("Kit", "Berry"),
+        ("Doug", "Ruffs"), ("Max", "Gale"), ("Byron", "Gus"),
+        ("Poco", "Kit"), ("Gene", "Tara"), ("Sandy", "Emz"),
+        ("Otis", "Charlie"), ("Lou", "Chester"), ("Colette", "Amber"),
+        ("Tara", "Sandy"), ("Emz", "Otis"), ("Colt", "Rico"),
+        ("Spike", "Carl"), ("Bibi", "Surge"), ("Nita", "Jessie"),
+        ("Penny", "Bo"), ("Griff", "Sam"), ("Squeak", "Gray"),
+        ("Chuck", "Mico"), ("Clancy", "Moe"), ("Pearl", "Lola"),
+        ("Maisie", "Eve"), ("Bonnie", "Ollie"), ("8-Bit", "R-T"),
+        ("Rico", "Squeak"), ("Shelly", "Nita"), ("Carl", "Surge"),
+    ),
 }
 
+OPTIONAL_THEMES: tuple[str, ...] = ("Brawl Stars",)
+"""Thèmes qui ne rejoignent jamais le tirage général.
+
+Un thème optionnel est **exclusif** : soit il est éteint et ses paires
+n'existent pas pour la partie, soit il est allumé et c'est le seul
+dictionnaire. Le mélanger au reste n'aurait pas de sens — les indices
+d'un personnage de jeu vidéo et ceux d'un légume ne se ressemblent en
+rien, et la table ne saurait plus dans quel univers elle joue.
+"""
+
 WORD_PAIRS: tuple[WordPair, ...] = tuple(
-    pair for pairs in PAIRS_BY_THEME.values() for pair in pairs
+    pair
+    for theme, pairs in PAIRS_BY_THEME.items()
+    if theme not in OPTIONAL_THEMES
+    for pair in pairs
 )
+
+
+def theme_pairs(theme: str) -> tuple[WordPair, ...]:
+    """Les paires d'un seul thème, pour jouer en mode exclusif."""
+    try:
+        return PAIRS_BY_THEME[theme]
+    except KeyError:
+        raise KeyError(f"Thème inconnu : {theme!r}") from None
 
 
 def theme_of(pair_index: int) -> str:
     """Le theme auquel appartient la paire d'indice donne."""
     seen = 0
     for theme, pairs in PAIRS_BY_THEME.items():
+        if theme in OPTIONAL_THEMES:
+            continue  # hors du tirage général, donc hors des indices
         if pair_index < seen + len(pairs):
             return theme
         seen += len(pairs)

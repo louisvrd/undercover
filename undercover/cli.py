@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 
 from .core import MIN_PLAYERS, Game, Role, RuleError, Team, max_special_roles
+from .words import OPTIONAL_THEMES, WordGenerator, theme_pairs
 
 ROLE_LABELS = {
     Role.CIVILIAN: "Civil",
@@ -53,6 +54,16 @@ def ask_names(count: int) -> list[str]:
                 names.append(name)
                 break
     return names
+
+
+def ask_yes_no(prompt: str) -> bool:
+    while True:
+        answer = input(prompt).strip().casefold()
+        if answer in ("o", "oui"):
+            return True
+        if answer in ("n", "non", ""):
+            return False
+        print("Répondez par o ou n.")
 
 
 def ask_choice(prompt: str, choices: list[int]) -> int:
@@ -115,7 +126,15 @@ def setup_game() -> tuple[Game, list[str]]:
     num_undercover = ask_int("Combien d'Undercover ? : ", 0, allowed)
     num_mr_white = ask_int("Combien de Mr. White ? : ", 0, allowed - num_undercover)
 
-    return Game(num_players, num_undercover, num_mr_white), names
+    # Un thème exclusif remplace le dictionnaire au lieu de le compléter :
+    # mélanger des personnages de jeu vidéo au reste laisserait la table
+    # sans repère sur l'univers dans lequel elle joue.
+    exclusif = OPTIONAL_THEMES[0]
+    words = None
+    if ask_yes_no(f"\nMode {exclusif} ? (o/n) : "):
+        words = WordGenerator(pairs=theme_pairs(exclusif))
+
+    return Game(num_players, num_undercover, num_mr_white, words=words), names
 
 
 def deal_cards(game: Game, names: list[str]) -> None:

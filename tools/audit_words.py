@@ -18,7 +18,12 @@ import unicodedata
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from undercover.words import PAIRS_BY_THEME, WORD_PAIRS, theme_of  # noqa: E402
+from undercover.words import (  # noqa: E402
+    OPTIONAL_THEMES,
+    PAIRS_BY_THEME,
+    WORD_PAIRS,
+    theme_of,
+)
 
 SIMILARITY_ALERT = 0.62
 
@@ -60,7 +65,8 @@ def main() -> None:
     print(f"  mots distincts    : {len(set(words))}")
     print()
     for theme, pairs in PAIRS_BY_THEME.items():
-        print(f"    {theme:<20} {len(pairs):>3} paires")
+        exclusif = "  (exclusif)" if theme in OPTIONAL_THEMES else ""
+        print(f"    {theme:<20} {len(pairs):>3} paires{exclusif}")
 
     # -- Paires en double (mêmes deux mots, ordre indifférent) ---------
     section("PAIRES EN DOUBLE")
@@ -132,6 +138,32 @@ def main() -> None:
     if len(close) > TOP:
         print(f"  ... et {len(close) - TOP} autres")
     print(f"  -> {len(close)} sur {len(WORD_PAIRS)}")
+
+    # -- Thèmes exclusifs ----------------------------------------------
+    section("THÈMES EXCLUSIFS")
+    print("  Hors du tirage général : soit éteints, soit seuls en piste.")
+    print("  Ils obéissent aux mêmes règles de forme.")
+    print()
+    for theme in OPTIONAL_THEMES:
+        pairs = PAIRS_BY_THEME[theme]
+        mots = [w for pair in pairs for w in pair]
+        doubles = [
+            p for p, n in collections.Counter(frozenset(p) for p in pairs).items() if n > 1
+        ]
+        trop = {w: n for w, n in collections.Counter(mots).items() if n > MAX_PAIRS_PER_WORD}
+        espaces = sorted({w for w in mots if " " in w})
+
+        print(f"  {theme} : {len(pairs)} paires, {len(set(mots))} mots distincts")
+        for label, faute in (
+            ("paires en double", [" / ".join(sorted(p)) for p in doubles]),
+            (f"mots au-delà de {MAX_PAIRS_PER_WORD} paires", sorted(trop)),
+            ("mots à espace", espaces),
+        ):
+            if faute:
+                problems += len(faute)
+                print(f"    {label} : {', '.join(faute)}")
+        if not (doubles or trop or espaces):
+            print("    rien à signaler")
 
     section("BILAN")
     print(f"  problèmes bloquants : {problems}")

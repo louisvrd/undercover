@@ -65,6 +65,7 @@ function sanitize(group) {
     members: unique,
     undercover: Number.isInteger(group.undercover) ? Math.max(0, group.undercover) : 1,
     mrWhite: Number.isInteger(group.mrWhite) ? Math.max(0, group.mrWhite) : 0,
+    brawl: group.brawl === true,
   };
 }
 

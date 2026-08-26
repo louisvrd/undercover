@@ -13,6 +13,7 @@
  */
 
 import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
+import { OPTIONAL_THEMES, drawPair } from './words.js';
 import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
 import { deleteGroup, emptyGroup, loadGroups, saveGroup } from './groups.js';
 import { Camera, isCameraSupported } from './camera.js';
@@ -20,7 +21,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v14';
+const APP_VERSION = 'v15';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -32,6 +33,7 @@ const state = {
   numPlayers: 4,
   undercover: 1,
   mrWhite: 0,
+  brawl: false, // thème exclusif : il remplace tout le dictionnaire
   maxSpecial: maxSpecialRoles(4),
   photos: {},
   groups: [], // tous les groupes connus
@@ -102,6 +104,7 @@ function rememberGroup(names) {
     members,
     undercover: state.undercover,
     mrWhite: state.mrWhite,
+    brawl: state.brawl,
   };
   state.groups = saveGroup(state.group);
 }
@@ -115,8 +118,10 @@ function selectGroup(group) {
   );
   state.undercover = group.undercover;
   state.mrWhite = group.mrWhite;
+  state.brawl = group.brawl === true;
 
   el('num-players').value = state.numPlayers;
+  el('brawl-mode').checked = state.brawl;
   refreshRules();
   showScreen('setup-screen');
 }
@@ -343,9 +348,23 @@ function step(target, delta) {
   el(target).value = state[key];
 }
 
+/**
+ * Le dictionnaire de la partie.
+ *
+ * Un thème exclusif ne complète pas le tirage général, il le remplace :
+ * mélanger des personnages de jeu vidéo à des légumes laisserait la
+ * table sans repère sur l'univers dans lequel elle joue.
+ */
+function chosenPool() {
+  return state.brawl ? OPTIONAL_THEMES['Brawl Stars'] : null;
+}
+
 function startGame() {
+  const pool = chosenPool();
   try {
-    game = new Game(state.numPlayers, state.undercover, state.mrWhite);
+    game = new Game(state.numPlayers, state.undercover, state.mrWhite, {
+      drawPair: pool ? (random) => drawPair(random, pool) : undefined,
+    });
   } catch (error) {
     notify(error.message, 'error');
     return;
@@ -998,6 +1017,11 @@ el('group-back').addEventListener('click', () => {
 el('group-delete').addEventListener('click', removeGroup);
 el('member-add').addEventListener('click', () => openProfileSheet({ mode: 'add' }));
 el('group-name').addEventListener('input', disarmDelete);
+
+el('brawl-mode').addEventListener('change', (e) => {
+  state.brawl = e.target.checked;
+  haptic(12);
+});
 
 el('setup-back').addEventListener('click', backToLobby);
 el('start-game').addEventListener('click', startGame);

@@ -2736,18 +2736,93 @@ export const WORD_PAIRS = [
 ];
 
 /**
- * Une paire au hasard.
+ * Thèmes exclusifs — ils ne rejoignent jamais le tirage général.
+ *
+ * Soit un thème est éteint et ses paires n'existent pas pour la partie,
+ * soit il est allumé et c'est le seul dictionnaire. Les mélanger n'aurait
+ * pas de sens : les indices d'un personnage de jeu vidéo et ceux d'un
+ * légume ne se ressemblent en rien, et la table ne saurait plus dans
+ * quel univers elle joue.
+ */
+export const OPTIONAL_THEMES = {
+  "Brawl Stars": [
+    ["Bull", "Frank"],
+    ["Rosa", "Jacky"],
+    ["Darryl", "Ash"],
+    ["Hank", "Buster"],
+    ["Draco", "Meg"],
+    ["Frank", "Rosa"],
+    ["Bull", "Jacky"],
+    ["Ash", "Buster"],
+    ["Piper", "Brock"],
+    ["Bea", "Nani"],
+    ["Belle", "Mandy"],
+    ["Angelo", "Janet"],
+    ["Brock", "Bea"],
+    ["Piper", "Belle"],
+    ["Nani", "Angelo"],
+    ["Mandy", "Janet"],
+    ["Barley", "Dynamike"],
+    ["Tick", "Sprout"],
+    ["Grom", "Willow"],
+    ["Juju", "Sprout"],
+    ["Dynamike", "Grom"],
+    ["Barley", "Willow"],
+    ["Mortis", "Crow"],
+    ["Leon", "Edgar"],
+    ["Fang", "Buzz"],
+    ["Stu", "Kenji"],
+    ["Melodie", "Lily"],
+    ["Cordelius", "Shade"],
+    ["Crow", "Leon"],
+    ["Edgar", "Fang"],
+    ["Poco", "Byron"],
+    ["Pam", "Gus"],
+    ["Kit", "Berry"],
+    ["Doug", "Ruffs"],
+    ["Max", "Gale"],
+    ["Byron", "Gus"],
+    ["Poco", "Kit"],
+    ["Gene", "Tara"],
+    ["Sandy", "Emz"],
+    ["Otis", "Charlie"],
+    ["Lou", "Chester"],
+    ["Colette", "Amber"],
+    ["Tara", "Sandy"],
+    ["Emz", "Otis"],
+    ["Colt", "Rico"],
+    ["Spike", "Carl"],
+    ["Bibi", "Surge"],
+    ["Nita", "Jessie"],
+    ["Penny", "Bo"],
+    ["Griff", "Sam"],
+    ["Squeak", "Gray"],
+    ["Chuck", "Mico"],
+    ["Clancy", "Moe"],
+    ["Pearl", "Lola"],
+    ["Maisie", "Eve"],
+    ["Bonnie", "Ollie"],
+    ["8-Bit", "R-T"],
+    ["Rico", "Squeak"],
+    ["Shelly", "Nita"],
+    ["Carl", "Surge"],
+  ],
+};
+
+/**
+ * Une paire au hasard, tirée de `pairs` — le dictionnaire général par
+ * défaut, ou celui d'un thème exclusif.
  *
  * L'ordre est tiré lui aussi : sans cela, le mot de la majorité serait
  * toujours le premier écrit, et un joueur qui connaît la liste saurait
  * dans quel camp il est.
  */
-export function drawPair(random = Math.random) {
-  const [first, second] = WORD_PAIRS[Math.floor(random() * WORD_PAIRS.length)];
+export function drawPair(random = Math.random, pairs = WORD_PAIRS) {
+  const [first, second] = pairs[Math.floor(random() * pairs.length)];
   return random() < 0.5 ? [first, second] : [second, first];
 }
 
-/** Nombre de paires du dictionnaire. */
-export function pairCount() {
-  return WORD_PAIRS.length;
+/** Nombre de paires du dictionnaire donné. */
+export function pairCount(pairs = WORD_PAIRS) {
+  return pairs.length;
 }

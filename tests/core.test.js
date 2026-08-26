@@ -17,7 +17,7 @@ import {
   maxSpecialRoles,
   normalizeWord,
 } from '../docs/core.js';
-import { WORD_PAIRS, drawPair, pairCount } from '../docs/words.js';
+import { OPTIONAL_THEMES, WORD_PAIRS, drawPair, pairCount } from '../docs/words.js';
 
 const NAMES = ['Alice', 'Bob', 'Chloé', 'David', 'Emma', 'Farid', 'Gaby', 'Hugo'];
 
@@ -462,6 +462,54 @@ test("l'ordre de la paire est tiré aussi", () => {
 
   assert.deepEqual(drawPair(scripted(0, 0.2)), [a, b]);
   assert.deepEqual(drawPair(scripted(0, 0.8)), [b, a]);
+});
+
+test('un thème exclusif reste hors du tirage général', () => {
+  const general = new Set(WORD_PAIRS.map(([a, b]) => key(a, b)));
+  for (const pairs of Object.values(OPTIONAL_THEMES)) {
+    for (const [a, b] of pairs) {
+      assert.ok(!general.has(key(a, b)), `${a} / ${b} fuite dans le général`);
+    }
+  }
+});
+
+test('un thème exclusif se joue seul', () => {
+  const pairs = OPTIONAL_THEMES['Brawl Stars'];
+  assert.ok(pairs.length >= 20);
+
+  const random = seeded(9);
+  const known = new Set(pairs.map(([a, b]) => key(a, b)));
+  for (let i = 0; i < 120; i += 1) {
+    const [first, second] = drawPair(random, pairs);
+    assert.notEqual(first, second);
+    assert.ok(known.has(key(first, second)), `${first} / ${second}`);
+  }
+  assert.equal(pairCount(pairs), pairs.length);
+});
+
+test('les paires exclusives sont bien formées', () => {
+  for (const pairs of Object.values(OPTIONAL_THEMES)) {
+    const keys = pairs.map(([a, b]) => key(a, b));
+    assert.equal(new Set(keys).size, keys.length);
+    for (const [a, b] of pairs) {
+      assert.notEqual(a, b);
+      assert.ok(!a.includes(' ') && !b.includes(' '), `${a} / ${b}`);
+    }
+  }
+});
+
+test('une partie peut tourner sur le seul thème exclusif', () => {
+  const pairs = OPTIONAL_THEMES['Brawl Stars'];
+  const noms = new Set(pairs.flat());
+  const game = new Game(6, 1, 0, {
+    random: seeded(4),
+    drawPair: (random) => drawPair(random, pairs),
+  });
+  for (let i = 0; i < 6; i += 1) game.claim(i, NAMES[i]);
+
+  for (const joueur of game.players) {
+    if (joueur.word !== null) assert.ok(noms.has(joueur.word), joueur.word);
+  }
 });
 
 test('aucune paire en double', () => {

@@ -94,7 +94,7 @@ du tour. Sans ça, il fallait retenir qui parlait après qui.
 ## Le dictionnaire
 
 **2624 paires écrites à la main**, 3515 mots distincts, réparties en
-107 thèmes.
+107 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -180,6 +180,28 @@ Le vocabulaire libéré a été réinvesti en **recombinaisons** : des mots
 déjà validés appariés autrement, ce que le plafond de trois paires par
 mot autorise. C'est plus sûr que d'aller chercher des mots rares.
 
+### Le mode Brawl Stars
+
+Une case à cocher sur l'écran de configuration. Cochée, la partie ne tire
+plus que des personnages du jeu : `Piper / Brock`, `Barley / Dynamike`,
+`Mortis / Crow`. Décochée, ces 60 paires n'existent pas.
+
+Un thème exclusif **remplace** le dictionnaire au lieu de le compléter, et
+c'est délibéré. Mélanger `Shelly` à `courgette` laisserait la table sans
+repère : personne ne saurait si l'indice qu'il vient d'entendre parle d'un
+brawler ou d'un légume, et un joueur qui reçoit un mot du mauvais univers
+est démasqué au premier tour sans avoir joué. Le moteur le garantit —
+`WORD_PAIRS` exclut les thèmes listés dans `OPTIONAL_THEMES`, et un test
+vérifie qu'aucune paire exclusive ne peut tomber dans une partie normale.
+
+Le choix est mémorisé **par groupe**, comme le nombre d'Undercover : la
+bande qui joue en mode Brawl Stars le retrouve coché à la partie suivante.
+
+Ajouter un autre thème exclusif ne demande que deux choses : l'écrire dans
+`PAIRS_BY_THEME` et le nommer dans `OPTIONAL_THEMES`. Le reste — audit,
+génération du JavaScript, console — le prend en compte tout seul. Seule la
+case à cocher est câblée en dur dans l'interface.
+
 ## Les groupes
 
 L'app s'ouvre sur un **lobby** : la liste des groupes déjà constitués. On
@@ -255,8 +277,8 @@ anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 ```bash
 python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
 python -m undercover.cli                      # version console
-python -m pytest                              # 56 tests Python
-node --test tests/core.test.js                # 52 tests JavaScript
+python -m pytest                              # 61 tests Python
+node --test tests/core.test.js                # 56 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -286,11 +308,11 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            2624 paires, 107 thèmes
+  words.py            2624 paires, 107 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        56 tests Python
-  core.test.js        52 tests JavaScript, les mêmes cas
+  test_core.py        61 tests Python
+  core.test.js        56 tests JavaScript, les mêmes cas
 tools/
   gen_words_js.py     words.py  -> words.js
   gen_icons.py        icônes de la PWA

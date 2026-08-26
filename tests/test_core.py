@@ -11,7 +11,13 @@ from undercover.core import (
     max_special_roles,
     normalize_word,
 )
-from undercover.words import WORD_PAIRS, WordGenerator
+from undercover.words import (
+    OPTIONAL_THEMES,
+    PAIRS_BY_THEME,
+    WORD_PAIRS,
+    WordGenerator,
+    theme_pairs,
+)
 
 NAMES = ["Alice", "Bob", "Chloé", "David", "Emma", "Farid", "Gaby", "Hugo"]
 
@@ -447,6 +453,47 @@ def test_shipped_pairs_are_all_usable():
     assert WordGenerator().pair_count() == len(WORD_PAIRS)
     for first, second in WORD_PAIRS:
         assert first != second
+
+
+def test_optional_theme_stays_out_of_the_general_draw():
+    """Un thème exclusif ne doit jamais tomber dans une partie normale."""
+    general = {frozenset(pair) for pair in WORD_PAIRS}
+    for theme in OPTIONAL_THEMES:
+        for pair in theme_pairs(theme):
+            assert frozenset(pair) not in general
+
+
+def test_optional_theme_is_playable_alone():
+    theme = OPTIONAL_THEMES[0]
+    pairs = theme_pairs(theme)
+    assert len(pairs) >= 20  # de quoi enchaîner les parties sans se répéter
+
+    generator = WordGenerator(pairs=pairs, rng=random.Random(3))
+    known = {frozenset(pair) for pair in pairs}
+    for _ in range(120):
+        assert frozenset(generator.pair()) in known
+
+
+def test_optional_theme_pairs_are_well_formed():
+    for theme in OPTIONAL_THEMES:
+        pairs = theme_pairs(theme)
+        assert len({frozenset(p) for p in pairs}) == len(pairs)
+        for first, second in pairs:
+            assert first != second
+            assert " " not in first and " " not in second
+
+
+def test_unknown_theme_is_rejected():
+    with pytest.raises(KeyError, match="Thème inconnu"):
+        theme_pairs("Thème qui n'existe pas")
+
+
+def test_theme_of_never_names_an_optional_theme():
+    """theme_of indexe le tirage général : les exclusifs en sont absents."""
+    from undercover.words import theme_of
+
+    for i in range(len(WORD_PAIRS)):
+        assert theme_of(i) not in OPTIONAL_THEMES
 
 
 def test_no_duplicate_pair():
