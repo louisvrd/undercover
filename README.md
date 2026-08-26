@@ -223,6 +223,17 @@ case à cocher est câblée en dur dans l'interface.
 L'app s'ouvre sur un **lobby** : la liste des groupes déjà constitués. On
 en touche un pour jouer, ou `✎` pour modifier ses profils.
 
+Une fois le groupe choisi, on n'y revient qu'en le demandant. **Nouvelle
+partie** relance avec la même bande et repose sur l'écran de
+configuration : enchaîner deux manches est le cas courant, et refaire le
+tour par la liste des groupes à chaque fois n'apporte rien. La **flèche**
+en haut à gauche remonte au lobby quand on veut vraiment changer.
+
+Elle n'apparaît que sur la configuration et l'éditeur de groupe. Sur le
+plateau et pendant le débat elle disparaît : une partie y est en cours, et
+un doigt posé au mauvais endroit l'effacerait. Depuis l'éditeur, elle
+enregistre les retouches avant de sortir — sortir n'est pas annuler.
+
 Un groupe garde ses prénoms et ses photos d'une partie à l'autre, avec son
 nombre d'Undercover et de Mr. White. C'est ce qui évite de ressaisir six
 prénoms à chaque soirée — et ce qui permet à l'app d'annoncer **qui

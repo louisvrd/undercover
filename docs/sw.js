@@ -10,7 +10,7 @@
  * version depuis leur cache. APP_VERSION dans app.js doit suivre.
  */
 
-const CACHE_VERSION = 'v17';
+const CACHE_VERSION = 'v18';
 const CACHE_NAME = `undercover-${CACHE_VERSION}`;
 
 const ASSETS = [

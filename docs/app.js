@@ -21,7 +21,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v17';
+const APP_VERSION = 'v18';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -153,10 +153,16 @@ function notify(message, type = 'info') {
 
 const SCREENS = ['lobby-screen', 'group-screen', 'setup-screen', 'board-screen', 'game-screen'];
 
+// Écrans depuis lesquels remonter au lobby ne coûte rien. Le plateau et
+// le débat en sont exclus : une partie y est en cours, et la flèche
+// l'effacerait d'un doigt posé au mauvais endroit.
+const BACKABLE = ['group-screen', 'setup-screen'];
+
 function showScreen(id) {
   SCREENS.forEach((screen) => {
     el(screen).hidden = screen !== id;
   });
+  el('header-back').hidden = !BACKABLE.includes(id);
   window.scrollTo(0, 0);
 }
 
@@ -1018,10 +1024,6 @@ document.querySelectorAll('.btn-number').forEach((button) => {
 
 el('group-new').addEventListener('click', createGroup);
 el('group-play').addEventListener('click', () => selectGroup(commitGroup()));
-el('group-back').addEventListener('click', () => {
-  commitGroup();
-  backToLobby();
-});
 el('group-delete').addEventListener('click', removeGroup);
 el('member-add').addEventListener('click', () => openProfileSheet({ mode: 'add' }));
 el('group-name').addEventListener('input', disarmDelete);
@@ -1031,7 +1033,6 @@ el('brawl-mode').addEventListener('change', (e) => {
   haptic(12);
 });
 
-el('setup-back').addEventListener('click', backToLobby);
 el('start-game').addEventListener('click', startGame);
 el('go-debate').addEventListener('click', goToDebate);
 
@@ -1061,9 +1062,36 @@ el('camera-flip').addEventListener('click', flipCamera);
 el('camera-gallery').addEventListener('click', () => galleryInput.click());
 document.body.appendChild(galleryInput);
 
-el('new-game').addEventListener('click', () => {
+/**
+ * Relance une partie avec le même groupe.
+ *
+ * On revient à la configuration plutôt qu'au lobby : enchaîner deux
+ * manches avec la même bande est le cas courant, et refaire le tour par
+ * la liste des groupes à chaque fois n'apporte rien. La flèche de
+ * l'en-tête reste là pour en changer.
+ */
+function newGame() {
   clearSave();
-  window.location.reload();
+  game = null;
+  state.queue = [];
+  state.queueIndex = 0;
+
+  if (!state.group) {
+    backToLobby(); // le groupe a été supprimé entre-temps
+    return;
+  }
+
+  refreshRules();
+  showScreen('setup-screen');
+  haptic(20);
+  notify(`Nouvelle partie avec ${state.group.name}.`, 'info');
+}
+
+el('new-game').addEventListener('click', newGame);
+
+el('header-back').addEventListener('click', () => {
+  if (!el('group-screen').hidden) commitGroup(); // on n'abandonne pas les retouches
+  backToLobby();
 });
 
 // Passage en arrière-plan : on relâche la caméra plutôt que de la garder
