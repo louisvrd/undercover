@@ -21,7 +21,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v18';
+const APP_VERSION = 'v19';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -605,7 +605,9 @@ function closeWord() {
 }
 
 function goToDebate() {
-  rememberGroup(game.names);
+  // L'ordre des cartes ne veut rien dire — chacun prend celle qu'il veut.
+  // C'est l'ordre de passage du téléphone qu'on retient.
+  rememberGroup(game.claimOrder);
   showScreen('game-screen');
   render();
   save('play');

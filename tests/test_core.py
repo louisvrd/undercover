@@ -208,6 +208,31 @@ def test_speaking_order_ignores_cards_still_free():
     assert game.speaking_order == ("Alice",)
 
 
+def test_claim_order_ignores_which_card_was_taken():
+    """L'ordre de passage du téléphone, pas celui des cartes.
+
+    C'est cet ordre-là qu'une façade doit retenir pour rejouer avec le
+    même groupe : chacun prend la carte qu'il veut, donc l'ordre des
+    cartes ne dit rien de qui a joué après qui.
+    """
+    game = Game(6, 1, 0, rng=random.Random(1))
+    profils = ["Ana", "Ben", "Cleo", "Dan", "Eve", "Flo"]
+    for carte, nom in zip([5, 2, 0, 4, 1, 3], profils):
+        game.claim(carte, nom)
+
+    assert game.claim_order == tuple(profils)
+    assert game.names != tuple(profils)  # l'ordre des cartes, lui, est brassé
+
+
+def test_claim_order_grows_with_the_distribution():
+    game = make_game(players=6, undercover=1, claim=False)
+    assert game.claim_order == ()
+
+    game.claim(3, "Ana")
+    game.claim(0, "Ben")
+    assert game.claim_order == ("Ana", "Ben")
+
+
 def test_speaking_order_follows_the_profile_order_not_the_cards():
     """Le tour suit l'ordre où le téléphone a circulé, pas celui des cartes."""
     game = Game(6, 1, 0, rng=random.Random(2))

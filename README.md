@@ -239,8 +239,15 @@ nombre d'Undercover et de Mr. White. C'est ce qui évite de ressaisir six
 prénoms à chaque soirée — et ce qui permet à l'app d'annoncer **qui
 pioche**, au lieu de laisser le téléphone tourner au hasard.
 
-L'ordre de pioche est une **rotation** de la liste du groupe : le premier
-est tiré au sort, puis on suit la liste en bouclant. Avec un groupe
+La liste du groupe, c'est **l'ordre où les profils ont été créés** —
+`claim_order`, celui du passage du téléphone. Surtout pas l'ordre des
+cartes : chacun prend celle qu'il veut, donc `names` est brassé et ne dit
+rien de qui a joué après qui. Confondre les deux fait tourner les parties
+suivantes sur une liste déjà mélangée, ce qui annule tout l'intérêt de la
+rotation.
+
+L'ordre de pioche est une **rotation** de cette liste : le premier est
+tiré au sort, puis on suit la liste en bouclant. Avec un groupe
 `Ana, Ben, Cléo, Dan, Eve`, une partie peut appeler `Ben, Cléo, Dan, Eve,
 Ana`. Ce n'est pas un mélange, et c'est délibéré : l'appareil fait le tour
 de la table dans un sens, chacun sait qui il doit servir ensuite. Un vrai
@@ -314,8 +321,8 @@ anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 ```bash
 python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
 python -m undercover.cli                      # version console
-python -m pytest                              # 66 tests Python
-node --test tests/core.test.js                # 62 tests JavaScript
+python -m pytest                              # 68 tests Python
+node --test tests/core.test.js                # 64 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -348,8 +355,8 @@ undercover/           version console Python
   words.py            2624 paires, 107 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        66 tests Python
-  core.test.js        62 tests JavaScript, les mêmes cas
+  test_core.py        68 tests Python
+  core.test.js        64 tests JavaScript, les mêmes cas
 tools/
   gen_words_js.py     words.py  -> words.js
   gen_icons.py        icônes de la PWA

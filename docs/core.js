@@ -282,8 +282,20 @@ export class Game {
       .map((card) => Object.freeze({ name: card.owner, role: card.role, word: card.word }));
   }
 
+  /** Les joueurs dans l'ordre des cartes. */
   get names() {
     return this.#cards.filter((c) => c.owner !== null).map((c) => c.owner);
+  }
+
+  /**
+   * Les joueurs dans l'ordre où ils ont pris leur carte.
+   *
+   * C'est l'ordre où le téléphone a circulé. Il n'a rien à voir avec
+   * celui des cartes, chacun prenant celle qu'il veut : c'est lui qu'il
+   * faut retenir pour rejouer avec le même groupe.
+   */
+  get claimOrder() {
+    return [...this.#claimed];
   }
 
   get activePlayers() {

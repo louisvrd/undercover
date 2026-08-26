@@ -198,6 +198,27 @@ test('l’ordre de parole ignore les cartes encore libres', () => {
   assert.deepEqual(game.speakingOrder, ['Alice']);
 });
 
+test('claimOrder ignore quelle carte a été prise', () => {
+  // C'est cet ordre qu'une façade retient pour rejouer avec le même
+  // groupe : chacun prend la carte qu'il veut, donc l'ordre des cartes
+  // ne dit rien de qui a joué après qui.
+  const game = new Game(6, 1, 0, { random: seeded(1) });
+  const profils = ['Ana', 'Ben', 'Cleo', 'Dan', 'Eve', 'Flo'];
+  [5, 2, 0, 4, 1, 3].forEach((carte, i) => game.claim(carte, profils[i]));
+
+  assert.deepEqual(game.claimOrder, profils);
+  assert.notDeepEqual(game.names, profils); // l'ordre des cartes est brassé
+});
+
+test('claimOrder se remplit au fil de la distribution', () => {
+  const game = makeGame({ players: 6, undercover: 1, claim: false });
+  assert.deepEqual(game.claimOrder, []);
+
+  game.claim(3, 'Ana');
+  game.claim(0, 'Ben');
+  assert.deepEqual(game.claimOrder, ['Ana', 'Ben']);
+});
+
 test('l’ordre de parole suit les profils, pas les cartes', () => {
   // Le tour suit l'ordre où le téléphone a circulé.
   const game = new Game(6, 1, 0, { random: seeded(2) });

@@ -284,7 +284,18 @@ class Game:
 
     @property
     def names(self) -> tuple[str, ...]:
+        """Les joueurs dans l'ordre des cartes."""
         return tuple(c.owner for c in self._cards if c.owner is not None)
+
+    @property
+    def claim_order(self) -> tuple[str, ...]:
+        """Les joueurs dans l'ordre où ils ont pris leur carte.
+
+        C'est l'ordre où le téléphone a circulé. Il n'a rien à voir avec
+        celui des cartes, chacun prenant celle qu'il veut : c'est lui
+        qu'il faut retenir pour rejouer avec le même groupe.
+        """
+        return tuple(self._claimed)
 
     @property
     def active_players(self) -> tuple[str, ...]:
