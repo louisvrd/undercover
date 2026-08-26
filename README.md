@@ -109,8 +109,8 @@ qu'aucun code d'annulation n'ait à s'en occuper.
 
 ## Le dictionnaire
 
-**2104 paires écrites à la main**, 2229 mots distincts, réparties en
-64 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
+**1210 paires écrites à la main**, 1346 mots distincts, réparties en
+53 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -209,8 +209,27 @@ C'est le piège permanent d'un gros dictionnaire : chaque famille de mots
 paraît inépuisable tant qu'on ne se demande pas si un joueur saurait en
 décrire les membres. Un thème sonne riche et n'est qu'un glossaire.
 
-Le compte est donc passé de 2624 à 2104. Il vaut mieux : une paire que
-personne ne sait décrire ne fait pas une manche, elle la gâche.
+### En largeur, pas en profondeur
+
+La règle qui résume tout le reste : **rester sur les mots courants au lieu
+de descendre dans une famille**. `fromage`, pas `picodon`.
+
+Un thème paraît riche quand on l'explore en profondeur — dix fromages,
+vingt oiseaux, quinze outils de plomberie. Mais un mot de deuxième rang
+ne se décrit pas, et deux mots de deuxième rang de la même famille se
+décrivent *pareil* : `picodon` et `salers` sont tous les deux « un
+fromage de chez nous », donc les deux camps donnent le même indice et
+plus personne ne peut trancher. La profondeur casse la manche des deux
+côtés à la fois.
+
+La barre retenue : **un joueur de douze ans saurait-il le décrire ?** Ce
+qui laisse `chat`, `fromage`, `stylo`, `marteau` — et écarte `picodon`,
+`corégone`, `bandonéon`, `télérupteur`.
+
+Le compte est donc passé de 2624 à **1210 paires**. C'est le prix, et il
+est juste : une paire que personne ne sait décrire ne fait pas une
+manche, elle la gâche. À 1210 paires il faut jouer 1210 fois avant de
+voir un mot revenir.
 
 ### Le mode Brawl Stars
 
@@ -375,7 +394,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            2104 paires, 64 thèmes + 1 exclusif
+  words.py            1210 paires, 53 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
   test_core.py        68 tests Python
