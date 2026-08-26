@@ -24,8 +24,45 @@
             <h1>Undercover</h1>
         </header>
 
+        <!-- Écran 0 — le lobby : avec quel groupe joue-t-on ? -->
+        <section id="lobby-screen" class="app-screen">
+            <div class="app-card">
+                <div class="app-card-header">Vos groupes</div>
+                <div class="app-card-body">
+                    <p class="hint" id="lobby-hint"></p>
+                    <div id="lobby-list" class="group-list"></div>
+                    <button type="button" id="group-new" class="app-button">＋ Nouveau groupe</button>
+                </div>
+            </div>
+
+            <p id="install-hint" class="hint install-hint" hidden></p>
+            <p class="version-tag">Undercover <span id="app-version"></span></p>
+        </section>
+
+        <!-- Écran 0 bis — modifier un groupe et ses profils -->
+        <section id="group-screen" class="app-screen" hidden>
+            <div class="app-card">
+                <div class="app-card-header">Le groupe</div>
+                <div class="app-card-body">
+                    <div class="form-group">
+                        <label class="app-label" for="group-name">Nom du groupe</label>
+                        <input type="text" id="group-name" class="form-control" autocomplete="off" maxlength="20">
+                    </div>
+
+                    <h2 class="section-title">Profils</h2>
+                    <p class="hint">Touche un joueur pour changer son prénom ou sa photo.</p>
+                    <div id="group-members" class="player-list"></div>
+                    <button type="button" id="member-add" class="undo-button">＋ Ajouter un joueur</button>
+
+                    <button type="button" id="group-play" class="app-button">Jouer avec ce groupe</button>
+                    <button type="button" id="group-back" class="app-button danger-button">Retour</button>
+                    <button type="button" id="group-delete" class="link-button">Supprimer le groupe</button>
+                </div>
+            </div>
+        </section>
+
         <!-- Écran 1 — combien de joueurs, combien d'imposteurs -->
-        <section id="setup-screen" class="app-screen">
+        <section id="setup-screen" class="app-screen" hidden>
             <div class="app-card">
                 <div class="app-card-header">Configuration</div>
                 <div class="app-card-body">
@@ -83,8 +120,7 @@
                 </div>
             </div>
 
-            <p id="install-hint" class="hint install-hint" hidden></p>
-            <p class="version-tag">Undercover <span id="app-version"></span></p>
+            <button type="button" id="setup-back" class="app-button danger-button">Changer de groupe</button>
         </section>
 
         <!-- Écran 2 — le plateau : chacun choisit sa carte -->
@@ -145,7 +181,7 @@
     <!-- Création de profil, au premier tour -->
     <div id="profile-modal" class="sheet-modal" hidden>
         <div class="sheet">
-            <p class="sheet-title">Qui prend cette carte ?</p>
+            <p class="sheet-title" id="profile-title">Qui prend cette carte ?</p>
 
             <div class="profile-photo-row">
                 <button type="button" id="profile-photo" class="avatar-button" aria-label="Ajouter une photo"></button>
@@ -155,6 +191,7 @@
             <p id="profile-error" class="sheet-error" hidden></p>
 
             <button type="button" id="profile-confirm" class="app-button">Voir mon mot</button>
+            <button type="button" id="profile-remove" class="link-button" hidden>Retirer du groupe</button>
             <button type="button" id="profile-cancel" class="app-button danger-button">Annuler</button>
         </div>
     </div>

@@ -986,3 +986,123 @@ button {
         transition-duration: 0.001ms !important;
     }
 }
+
+/* ------------------------------------------------------- écran 0 : lobby */
+
+.group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+}
+
+.group-item {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    animation: slide-in 0.32s var(--ease) both;
+}
+
+.group-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+    padding: 0.7rem 0.85rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.12s var(--ease);
+}
+
+.group-main:active {
+    transform: scale(0.985);
+    border-color: var(--line-strong);
+}
+
+/* Les visages se chevauchent : quatre tiennent là où deux passeraient. */
+.avatar-stack {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.avatar-stack .avatar {
+    border: 2px solid var(--bg-deep);
+}
+
+.avatar-stack .avatar + .avatar {
+    margin-left: -12px;
+}
+
+.group-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.group-name {
+    font-weight: 650;
+    /* Un nom trop long ne doit pas pousser le bouton ✎ hors de l'écran. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.group-text small {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.group-edit {
+    flex-shrink: 0;
+    width: 52px;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    color: var(--muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.group-edit:active {
+    border-color: var(--line-strong);
+    color: var(--text);
+}
+
+/* Action discrète et destructrice : jamais l'allure d'un bouton plein. */
+.link-button {
+    display: block;
+    width: 100%;
+    margin-top: 0.9rem;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.link-button.confirming {
+    color: var(--accent);
+}
+
+/* ------------------------------------------------ qui ouvre le débat */
+
+/* Le nom porte flex:1 : il pousse le badge à droite tout seul. */
+.speaker-tag {
+    flex: 0 0 auto;
+    padding: 3px 9px;
+    background: rgba(77, 171, 247, 0.14);
+    border-radius: 999px;
+    color: var(--info);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}

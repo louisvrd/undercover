@@ -157,9 +157,13 @@ def play(game: Game, names: list[str]) -> None:
     won_by_guess = False
     while not game.is_over:
         print(f"\n=== Manche {round_num} ===")
+        # Dans l'ordre de parole : celui qui ouvre le débat en tête.
+        still_in = set(game.active_players)
         print("\nEncore en jeu :")
-        for name in game.active_players:
-            print(f"  - {name}")
+        for name in game.speaking_order:
+            if name in still_in:
+                mark = " (commence)" if name == game.first_speaker else ""
+                print(f"  - {name}{mark}")
 
         print("\nDébattez, puis désignez l'éliminé.")
         name = ask_player("Qui est éliminé ? : ", game.active_players)

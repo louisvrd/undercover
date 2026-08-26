@@ -224,6 +224,20 @@ export class Game {
     return this.#cards[this.#firstCard].owner;
   }
 
+  /**
+   * Les joueurs dans l'ordre de parole, le premier orateur en tête.
+   *
+   * Le tour part de la carte tirée à la construction puis fait le tour de
+   * la table. Les cartes encore libres sont ignorées : l'ordre se complète
+   * au fur et à mesure de la distribution.
+   */
+  get speakingOrder() {
+    const count = this.#cards.length;
+    return Array.from({ length: count }, (_, i) => this.#cards[(this.#firstCard + i) % count])
+      .filter((card) => card.owner !== null)
+      .map((card) => card.owner);
+  }
+
   // -- Lecture --------------------------------------------------------
 
   /** Toutes les cartes prises, rôle et mot compris. Pour la révélation. */

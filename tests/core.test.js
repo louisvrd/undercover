@@ -174,6 +174,30 @@ test('le premier joueur est inconnu tant que sa carte est libre', () => {
   assert.equal(makeGame({ claim: false }).firstSpeaker, null);
 });
 
+test('l’ordre de parole commence par le premier orateur', () => {
+  const game = makeGame({ players: 6, undercover: 1 });
+  assert.equal(game.speakingOrder[0], game.firstSpeaker);
+});
+
+test('l’ordre de parole fait le tour de la table', () => {
+  // C'est une rotation de l'ordre des cartes, pas un nouveau tirage.
+  const game = makeGame({ players: 6, undercover: 1 });
+  const order = game.speakingOrder;
+  const names = game.names;
+
+  assert.deepEqual([...order].sort(), [...names].sort());
+  const start = names.indexOf(order[0]);
+  assert.deepEqual(order, [...names.slice(start), ...names.slice(0, start)]);
+});
+
+test('l’ordre de parole ignore les cartes encore libres', () => {
+  const game = makeGame({ players: 6, undercover: 1, claim: false });
+  assert.deepEqual(game.speakingOrder, []);
+
+  game.claim(0, 'Alice');
+  assert.deepEqual(game.speakingOrder, ['Alice']);
+});
+
 // -- Éliminations et victoire ------------------------------------------
 
 test('aucune élimination avant que toutes les cartes soient prises', () => {

@@ -178,6 +178,30 @@ def test_first_speaker_is_unknown_before_its_card_is_taken():
     assert game.first_speaker is None
 
 
+def test_speaking_order_starts_with_the_first_speaker():
+    game = make_game(players=6, undercover=1)
+    assert game.speaking_order[0] == game.first_speaker
+
+
+def test_speaking_order_goes_around_the_table():
+    """C'est une rotation de l'ordre des cartes, pas un nouveau tirage."""
+    game = make_game(players=6, undercover=1)
+    order = game.speaking_order
+    names = game.names
+
+    assert sorted(order) == sorted(names)
+    start = names.index(order[0])
+    assert order == names[start:] + names[:start]
+
+
+def test_speaking_order_ignores_cards_still_free():
+    game = make_game(players=6, undercover=1, claim=False)
+    assert game.speaking_order == ()
+
+    game.claim(0, "Alice")
+    assert game.speaking_order == ("Alice",)
+
+
 # -- Éliminations et victoire ------------------------------------------
 
 

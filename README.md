@@ -86,6 +86,11 @@ et un Mr. White grillé au premier tour n'a jamais fait une bonne manche.
 Le tirage a lieu à la construction, donc `first_speaker` reste inconnu
 tant que la carte désignée n'a pas trouvé son joueur.
 
+`speaking_order` déroule la table à partir de cette carte et fait le tour.
+Les deux façades affichent la liste dans cet ordre plutôt que dans celui
+des cartes : le joueur qui ouvre est en haut, et on descend dans le sens
+du tour. Sans ça, il fallait retenir qui parlait après qui.
+
 ## Le dictionnaire
 
 **257 paires écrites à la main**, 514 mots dont aucun ne se répète,
@@ -125,6 +130,38 @@ et les paires proches. Il mesure la **forme** des mots, pas leur sens :
 « grêle / gel » y remonte alors que les deux se décrivent très
 différemment. À lire comme une liste de points à inspecter, pas comme un
 verdict.
+
+## Les groupes
+
+L'app s'ouvre sur un **lobby** : la liste des groupes déjà constitués. On
+en touche un pour jouer, ou `✎` pour modifier ses profils.
+
+Un groupe garde ses prénoms et ses photos d'une partie à l'autre, avec son
+nombre d'Undercover et de Mr. White. C'est ce qui évite de ressaisir six
+prénoms à chaque soirée — et ce qui permet à l'app d'annoncer **qui
+pioche**, dans un ordre tiré au sort, au lieu de laisser le téléphone
+tourner au hasard.
+
+Un groupe neuf part vide, et c'est voulu : on lance la partie tout de
+suite, et **chacun crée son profil au moment de prendre sa carte**. Les
+prénoms saisis rejoignent le groupe à la fin de la manche. Rien à préparer
+avant de jouer ; le groupe se remplit en jouant.
+
+L'éditeur sert ensuite à corriger ce que la première partie a laissé :
+changer un prénom, ajouter une photo, retirer quelqu'un qui ne vient plus.
+Toucher un joueur rouvre sa fiche.
+
+Deux détails qui se voient à l'usage :
+
+- **La photo suit le prénom.** Renommer « Léa » en « Léna » déplace sa
+  vignette, rangée sous son nom. L'ancienne n'est effacée que si plus
+  aucun groupe ne s'en sert — le même prénom peut jouer ailleurs.
+- **Retirer quelqu'un ne supprime pas sa photo.** Il peut revenir, ou
+  figurer dans un autre groupe.
+
+Les téléphones qui tournaient une version d'avant les groupes avaient une
+seule liste mémorisée : elle devient automatiquement un groupe nommé
+« Mon groupe » au premier lancement.
 
 ## Installer sur un téléphone
 
@@ -169,8 +206,8 @@ anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 ```bash
 python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
 python -m undercover.cli                      # version console
-python -m pytest                              # 53 tests Python
-node --test tests/core.test.js                # 49 tests JavaScript
+python -m pytest                              # 56 tests Python
+node --test tests/core.test.js                # 52 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -192,6 +229,7 @@ docs/                 la PWA — c'est ce qui est publié
   core.js             règles, aucune I/O
   words.js            généré depuis words.py
   photos.js           vignettes + stockage local
+  groups.js           les groupes de joueurs, mémorisés
   camera.js           capture via getUserMedia
   style.css
   manifest.webmanifest
@@ -202,8 +240,8 @@ undercover/           version console Python
   words.py            257 paires, 11 thèmes
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        53 tests Python
-  core.test.js        49 tests JavaScript, les mêmes cas
+  test_core.py        56 tests Python
+  core.test.js        52 tests JavaScript, les mêmes cas
 tools/
   gen_words_js.py     words.py  -> words.js
   gen_icons.py        icônes de la PWA

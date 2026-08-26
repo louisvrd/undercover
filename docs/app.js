@@ -13,17 +13,17 @@
  */
 
 import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
-import { avatarElement, fileToAvatar, loadPhotos, setPhoto } from './photos.js';
+import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
+import { deleteGroup, emptyGroup, loadGroups, saveGroup } from './groups.js';
 import { Camera, isCameraSupported } from './camera.js';
 
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v11';
+const APP_VERSION = 'v12';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
-const ROSTER_KEY = 'undercover:roster';
 const CONFIRM_MS = 3000;
 
 const el = (id) => document.getElementById(id);
@@ -34,7 +34,10 @@ const state = {
   mrWhite: 0,
   maxSpecial: maxSpecialRoles(4),
   photos: {},
-  roster: [], // prénoms mémorisés des parties précédentes
+  groups: [], // tous les groupes connus
+  group: null, // le groupe avec lequel on joue
+  editing: null, // le groupe ouvert dans l'éditeur
+  profile: null, // ce que la feuille de profil est en train de faire
   queue: [], // qui doit piocher, dans l'ordre — vide au tout premier tour
   queueIndex: 0,
   pendingCard: null, // carte en attente d'un nom
@@ -68,6 +71,7 @@ function save(phase) {
     phase,
     queue: state.queue,
     queueIndex: state.queueIndex,
+    groupId: state.group?.id ?? null,
   });
 }
 
@@ -79,25 +83,42 @@ function clearSave() {
   }
 }
 
-/** Retient la composition du groupe pour la prochaine partie. */
-function saveRoster(names) {
-  state.roster = names;
-  writeJSON(ROSTER_KEY, { names, undercover: state.undercover, mrWhite: state.mrWhite });
+/**
+ * Retient la composition du groupe pour la prochaine partie.
+ *
+ * Les nouveaux venus s'ajoutent à la fin ; les habitués gardent leur
+ * place, pour que l'ordre affiché dans l'éditeur reste stable.
+ */
+function rememberGroup(names) {
+  if (!state.group) return;
+
+  const members = [...state.group.members];
+  names.forEach((name) => {
+    if (!members.includes(name)) members.push(name);
+  });
+
+  state.group = {
+    ...state.group,
+    members,
+    undercover: state.undercover,
+    mrWhite: state.mrWhite,
+  };
+  state.groups = saveGroup(state.group);
 }
 
-function applyRoster() {
-  const roster = readJSON(ROSTER_KEY);
-  if (!roster || !Array.isArray(roster.names)) return;
+/** Le groupe est choisi : on passe à la configuration de la partie. */
+function selectGroup(group) {
+  state.group = group;
+  state.numPlayers = Math.min(
+    MAX_PLAYERS,
+    Math.max(MIN_PLAYERS, group.members.length || state.numPlayers),
+  );
+  state.undercover = group.undercover;
+  state.mrWhite = group.mrWhite;
 
-  const names = roster.names.filter((n) => typeof n === 'string' && n.trim());
-  state.roster = names.slice(0, MAX_PLAYERS);
-
-  if (names.length >= MIN_PLAYERS) {
-    state.numPlayers = Math.min(names.length, MAX_PLAYERS);
-    el('num-players').value = state.numPlayers;
-  }
-  if (Number.isInteger(roster.undercover)) state.undercover = roster.undercover;
-  if (Number.isInteger(roster.mrWhite)) state.mrWhite = roster.mrWhite;
+  el('num-players').value = state.numPlayers;
+  refreshRules();
+  showScreen('setup-screen');
 }
 
 /* -------------------------------------------------------------- haptique */
@@ -125,8 +146,10 @@ function notify(message, type = 'info') {
   }, 3000);
 }
 
+const SCREENS = ['lobby-screen', 'group-screen', 'setup-screen', 'board-screen', 'game-screen'];
+
 function showScreen(id) {
-  ['setup-screen', 'board-screen', 'game-screen'].forEach((screen) => {
+  SCREENS.forEach((screen) => {
     el(screen).hidden = screen !== id;
   });
   window.scrollTo(0, 0);
@@ -139,6 +162,133 @@ function shuffled(items, random = Math.random) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+}
+
+/* --------------------------------------------------------------- écran 0 */
+
+function renderLobby() {
+  state.groups = loadGroups();
+
+  const list = el('lobby-list');
+  list.replaceChildren();
+
+  state.groups.forEach((group) => {
+    const row = document.createElement('div');
+    row.className = 'group-item';
+
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'group-main';
+
+    // Un aperçu des visages : on reconnaît sa bande avant de lire le nom.
+    const faces = document.createElement('span');
+    faces.className = 'avatar-stack';
+    group.members
+      .slice(0, 4)
+      .forEach((name) => faces.appendChild(avatarElement(name, state.photos[name], 'avatar-sm')));
+    open.appendChild(faces);
+
+    const text = document.createElement('span');
+    text.className = 'group-text';
+    const title = document.createElement('span');
+    title.className = 'group-name';
+    title.textContent = group.name;
+    const count = document.createElement('small');
+    count.textContent = group.members.length
+      ? `${group.members.length} profil${group.members.length > 1 ? 's' : ''}`
+      : 'aucun profil pour l’instant';
+    text.append(title, count);
+    open.appendChild(text);
+    open.addEventListener('click', () => selectGroup(group));
+
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'group-edit';
+    edit.textContent = '✎';
+    edit.setAttribute('aria-label', `Modifier ${group.name}`);
+    edit.addEventListener('click', () => openGroupEditor(group));
+
+    row.append(open, edit);
+    list.appendChild(row);
+  });
+  stagger(list);
+
+  el('lobby-hint').textContent = state.groups.length
+    ? 'Touche un groupe pour jouer, ou ✎ pour modifier ses profils.'
+    : 'Crée un groupe pour commencer : les profils se rempliront tout seuls à la première partie.';
+}
+
+function backToLobby() {
+  state.group = null;
+  state.editing = null;
+  renderLobby();
+  showScreen('lobby-screen');
+}
+
+function createGroup() {
+  const group = emptyGroup(`Groupe ${state.groups.length + 1}`);
+  state.groups = saveGroup(group);
+  openGroupEditor(group);
+}
+
+/* -- l'éditeur de groupe -- */
+
+function openGroupEditor(group) {
+  // On travaille sur une copie : rien n'est écrit avant de quitter l'écran.
+  state.editing = { ...group, members: [...group.members] };
+  el('group-name').value = state.editing.name;
+  disarmDelete();
+  renderMembers();
+  showScreen('group-screen');
+}
+
+function renderMembers() {
+  const list = el('group-members');
+  list.replaceChildren();
+
+  state.editing.members.forEach((name, index) => {
+    const row = playerRow(name);
+    row.classList.add('tappable');
+    row.addEventListener('click', () => openProfileSheet({ mode: 'edit', index, name }));
+    list.appendChild(row);
+  });
+  stagger(list);
+
+  el('group-members').hidden = state.editing.members.length === 0;
+  el('member-add').hidden = state.editing.members.length >= MAX_PLAYERS;
+}
+
+/** Écrit le groupe en cours d'édition et renvoie sa version enregistrée. */
+function commitGroup() {
+  const typed = el('group-name').value.trim();
+  state.editing.name = typed || 'Sans nom';
+  state.groups = saveGroup(state.editing);
+  return state.groups.find((group) => group.id === state.editing.id);
+}
+
+// Suppression à deux temps : le premier tap arme, le second valide.
+let deleteArmed = false;
+
+function disarmDelete() {
+  deleteArmed = false;
+  el('group-delete').textContent = 'Supprimer le groupe';
+  el('group-delete').classList.remove('confirming');
+}
+
+function removeGroup() {
+  if (!deleteArmed) {
+    deleteArmed = true;
+    el('group-delete').textContent = 'Confirmer la suppression';
+    el('group-delete').classList.add('confirming');
+    haptic(12);
+    return;
+  }
+
+  const name = state.editing.name;
+  state.groups = deleteGroup(state.editing.id);
+  disarmDelete();
+  backToLobby();
+  notify(`${name} supprimé.`, 'info');
 }
 
 /* --------------------------------------------------------------- écran 1 */
@@ -158,13 +308,18 @@ function refreshRules() {
     `À ${state.numPlayers} joueurs : ${state.maxSpecial} rôle(s) spécial(aux) au maximum, ` +
     'pour que les civils restent majoritaires au départ.';
 
-  const known = state.roster.length;
+  // Au démarrage, aucun groupe n'est encore choisi : l'indice reste muet.
+  const group = state.group;
+  const known = group?.members.length ?? 0;
   const hint = el('roster-hint');
-  hint.hidden = known < MIN_PLAYERS;
-  hint.textContent =
-    known >= state.numPlayers
-      ? `${known} profils mémorisés : l'app annoncera qui pioche.`
-      : `${known} profils mémorisés — les ${state.numPlayers - known} autres créeront le leur.`;
+
+  hint.hidden = known === 0;
+  if (group && known > 0) {
+    hint.textContent =
+      known >= state.numPlayers
+        ? `${known} profils dans ${group.name} : l'app annoncera qui pioche.`
+        : `${known} profil(s) dans ${group.name} — les ${state.numPlayers - known} autres créeront le leur.`;
+  }
 }
 
 function step(target, delta) {
@@ -198,10 +353,9 @@ function startGame() {
 
   // Assez de profils connus : l'app annonce qui pioche, dans un ordre
   // tiré au sort. Sinon chacun crée le sien en prenant sa carte.
+  const members = state.group?.members ?? [];
   state.queue =
-    state.roster.length >= state.numPlayers
-      ? shuffled(state.roster).slice(0, state.numPlayers)
-      : [];
+    members.length >= state.numPlayers ? shuffled(members).slice(0, state.numPlayers) : [];
   state.queueIndex = 0;
 
   haptic(25);
@@ -269,7 +423,7 @@ function pickCard(index) {
     claimCard(index, who); // profil déjà connu : on prend directement
     return;
   }
-  openProfileSheet();
+  openProfileSheet({ mode: 'claim' });
 }
 
 function claimCard(index, name) {
@@ -305,9 +459,25 @@ function refreshProfilePhoto() {
   );
 }
 
-function openProfileSheet() {
-  state.draftPhoto = null;
-  el('profile-name').value = '';
+/**
+ * La même feuille sert trois usages : prendre une carte en début de
+ * partie, ajouter un joueur au groupe, et modifier un profil existant.
+ * `intent` dit lequel — et ce qu'il faudra faire à la validation.
+ */
+function openProfileSheet(intent) {
+  state.profile = intent;
+  state.draftPhoto = intent.name ? (state.photos[intent.name] ?? null) : null;
+
+  const titles = {
+    claim: 'Qui prend cette carte ?',
+    add: 'Nouveau joueur',
+    edit: 'Modifier le profil',
+  };
+  el('profile-title').textContent = titles[intent.mode];
+  el('profile-confirm').textContent = intent.mode === 'claim' ? 'Voir mon mot' : 'Enregistrer';
+  el('profile-remove').hidden = intent.mode !== 'edit';
+
+  el('profile-name').value = intent.name ?? '';
   el('profile-error').hidden = true;
   refreshProfilePhoto();
   el('profile-modal').hidden = false;
@@ -321,23 +491,66 @@ function closeProfileSheet() {
 function confirmProfile() {
   const name = el('profile-name').value.trim();
   const error = el('profile-error');
+  const refuse = (message) => {
+    error.textContent = message;
+    error.hidden = false;
+  };
 
-  if (!name) {
-    error.textContent = 'Il faut un prénom.';
-    error.hidden = false;
+  if (!name) return refuse('Il faut un prénom.');
+
+  const intent = state.profile;
+
+  if (intent.mode === 'claim') {
+    if (game.names.includes(name)) return refuse(`${name} a déjà pris une carte.`);
+    claimCard(state.pendingCard, name);
     return;
   }
-  if (game.names.includes(name)) {
-    error.textContent = `${name} a déjà pris une carte.`;
-    error.hidden = false;
-    return;
+
+  // Deux joueurs d'un même groupe ne peuvent pas porter le même prénom :
+  // le moteur refuserait de leur donner deux cartes.
+  const clash = state.editing.members.some((m, i) => m === name && i !== intent.index);
+  if (clash) return refuse(`${name} est déjà dans le groupe.`);
+
+  if (intent.mode === 'add') {
+    if (state.draftPhoto) setPhoto(name, state.draftPhoto);
+    state.editing.members.push(name);
+  } else {
+    renameMember(intent.index, name);
   }
-  claimCard(state.pendingCard, name);
+
+  state.photos = loadPhotos();
+  cancelProfile();
+  renderMembers();
+}
+
+/** Change le prénom d'un membre — sa photo le suit, elle est rangée dessous. */
+function renameMember(index, name) {
+  const before = state.editing.members[index];
+  const photo = state.draftPhoto ?? state.photos[before];
+
+  if (photo) setPhoto(name, photo);
+
+  // La photo d'avant ne part que si plus personne ne s'en sert : le même
+  // prénom peut figurer dans un autre groupe.
+  const usedElsewhere = state.groups.some(
+    (group) => group.id !== state.editing.id && group.members.includes(before),
+  );
+  if (before !== name && !usedElsewhere) removePhoto(before);
+
+  state.editing.members[index] = name;
+}
+
+function removeMember() {
+  // On ne touche pas à la photo : le joueur peut revenir, ou jouer ailleurs.
+  state.editing.members.splice(state.profile.index, 1);
+  cancelProfile();
+  renderMembers();
 }
 
 function cancelProfile() {
   state.pendingCard = null;
   state.draftPhoto = null;
+  state.profile = null;
   closeProfileSheet();
 }
 
@@ -359,7 +572,7 @@ function closeWord() {
 }
 
 function goToDebate() {
-  saveRoster(game.names);
+  rememberGroup(game.names);
   showScreen('game-screen');
   render();
   save('play');
@@ -375,7 +588,7 @@ function stagger(container) {
   });
 }
 
-function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
+function playerRow(name, { eliminated = false, first = false, onEliminate = null } = {}) {
   const row = document.createElement('div');
   row.className = eliminated ? 'player-item eliminated' : 'player-item';
   row.appendChild(avatarElement(name, state.photos[name], 'avatar-sm'));
@@ -383,6 +596,13 @@ function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
   const label = document.createElement('span');
   label.textContent = name;
   row.appendChild(label);
+
+  if (first) {
+    const tag = document.createElement('small');
+    tag.className = 'speaker-tag';
+    tag.textContent = 'commence';
+    row.appendChild(tag);
+  }
 
   if (onEliminate) row.appendChild(eliminateButton(name, onEliminate));
   return row;
@@ -427,11 +647,21 @@ function eliminateButton(name, onEliminate) {
 function render() {
   const over = game.isOver;
 
+  // La liste suit l'ordre de parole, pas celui des cartes : celui qui
+  // ouvre le débat est en haut, et on descend dans le sens du tour.
+  const stillIn = new Set(game.activePlayers);
   const active = el('active-list');
   active.replaceChildren();
-  game.activePlayers.forEach((name) => {
-    active.appendChild(playerRow(name, { onEliminate: over ? null : eliminate }));
-  });
+  game.speakingOrder
+    .filter((name) => stillIn.has(name))
+    .forEach((name) => {
+      active.appendChild(
+        playerRow(name, {
+          first: name === game.firstSpeaker,
+          onEliminate: over ? null : eliminate,
+        }),
+      );
+    });
   stagger(active);
 
   const eliminated = el('eliminated-list');
@@ -735,6 +965,9 @@ function resume() {
   game = restored;
   state.queue = Array.isArray(saved.queue) ? saved.queue : [];
   state.queueIndex = saved.queueIndex ?? 0;
+  // Le groupe a pu être supprimé entre-temps : la partie reste jouable,
+  // elle ne sera simplement mémorisée nulle part à la fin.
+  state.group = state.groups.find((group) => group.id === saved.groupId) ?? null;
 
   if (saved.phase === 'play' || saved.phase === 'guess') {
     showScreen('game-screen');
@@ -756,12 +989,24 @@ document.querySelectorAll('.btn-number').forEach((button) => {
   );
 });
 
+el('group-new').addEventListener('click', createGroup);
+el('group-play').addEventListener('click', () => selectGroup(commitGroup()));
+el('group-back').addEventListener('click', () => {
+  commitGroup();
+  backToLobby();
+});
+el('group-delete').addEventListener('click', removeGroup);
+el('member-add').addEventListener('click', () => openProfileSheet({ mode: 'add' }));
+el('group-name').addEventListener('input', disarmDelete);
+
+el('setup-back').addEventListener('click', backToLobby);
 el('start-game').addEventListener('click', startGame);
 el('go-debate').addEventListener('click', goToDebate);
 
 el('profile-photo').addEventListener('click', openCamera);
 el('profile-name').addEventListener('input', refreshProfilePhoto);
 el('profile-confirm').addEventListener('click', confirmProfile);
+el('profile-remove').addEventListener('click', removeMember);
 el('profile-cancel').addEventListener('click', cancelProfile);
 el('profile-name').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') confirmProfile();
@@ -798,10 +1043,14 @@ document.addEventListener('visibilitychange', () => {
 el('app-version').textContent = APP_VERSION;
 
 state.photos = loadPhotos();
-applyRoster();
+state.groups = loadGroups();
+renderLobby();
 refreshRules();
 setupInstallHint();
-resume();
+
+// Une partie en cours court-circuite le lobby : on reprend là où le
+// groupe s'était arrêté.
+if (!resume()) showScreen('lobby-screen');
 
 if ('serviceWorker' in navigator) {
   // Le nouveau service worker prend la main (skipWaiting + clients.claim),

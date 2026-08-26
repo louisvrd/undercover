@@ -228,6 +228,18 @@ class Game:
         """Le joueur qui ouvre le débat — jamais Mr. White."""
         return self._cards[self._first_card].owner
 
+    @property
+    def speaking_order(self) -> tuple[str, ...]:
+        """Les joueurs dans l'ordre de parole, le premier orateur en tête.
+
+        Le tour part de la carte tirée à la construction puis fait le tour
+        de la table. Les cartes encore libres sont ignorées : l'ordre se
+        complète au fur et à mesure de la distribution.
+        """
+        count = len(self._cards)
+        tour = (self._cards[(self._first_card + i) % count] for i in range(count))
+        return tuple(card.owner for card in tour if card.owner is not None)
+
     # -- Lecture ---------------------------------------------------------
 
     @property
