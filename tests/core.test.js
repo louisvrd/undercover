@@ -198,6 +198,72 @@ test('l’ordre de parole ignore les cartes encore libres', () => {
   assert.deepEqual(game.speakingOrder, ['Alice']);
 });
 
+test('l’ordre de parole suit les profils, pas les cartes', () => {
+  // Le tour suit l'ordre où le téléphone a circulé.
+  const game = new Game(6, 1, 0, { random: seeded(2) });
+  const profils = ['Ana', 'Ben', 'Cleo', 'Dan', 'Eve', 'Flo'];
+  [4, 0, 5, 2, 3, 1].forEach((carte, i) => game.claim(carte, profils[i]));
+
+  assert.notDeepEqual(game.names, profils); // les cartes sont dans un autre ordre
+  const order = game.speakingOrder;
+  const start = profils.indexOf(order[0]);
+  assert.deepEqual(order, [...profils.slice(start), ...profils.slice(0, start)]);
+});
+
+test('la manche suivante s’ouvre sur le joueur après l’éliminé', () => {
+  const game = makeGame({ players: 6, undercover: 1 });
+  const order = game.speakingOrder;
+  const victime = order[2];
+  const suivant = order[3];
+
+  game.eliminate(victime);
+
+  assert.equal(game.firstSpeaker, suivant);
+  assert.equal(game.speakingOrder[0], suivant);
+});
+
+test('le tour boucle quand le dernier tombe', () => {
+  const game = makeGame({ players: 6, undercover: 1 });
+  const order = game.speakingOrder;
+
+  game.eliminate(order[order.length - 1]);
+
+  assert.equal(game.firstSpeaker, order[0]);
+});
+
+test('le tour saute ceux qui sont déjà sortis', () => {
+  const game = makeGame({ players: 6, undercover: 1 });
+  const order = game.speakingOrder;
+
+  game.eliminate(order[3]);
+  game.eliminate(order[2]);
+
+  assert.equal(game.firstSpeaker, order[4]);
+});
+
+test('annuler rend la parole à qui l’avait', () => {
+  const game = makeGame({ players: 6, undercover: 1 });
+  const avant = game.firstSpeaker;
+  game.eliminate(game.speakingOrder[2]);
+  assert.notEqual(game.firstSpeaker, avant);
+
+  game.undoLastElimination();
+
+  assert.equal(game.firstSpeaker, avant);
+});
+
+test('l’ordre des profils survit au rechargement', () => {
+  const game = new Game(6, 1, 0, { random: seeded(7) });
+  const profils = ['Ana', 'Ben', 'Cleo', 'Dan', 'Eve', 'Flo'];
+  [3, 1, 5, 0, 4, 2].forEach((carte, i) => game.claim(carte, profils[i]));
+
+  const restored = Game.restore(JSON.parse(JSON.stringify(game)));
+
+  assert.deepEqual(restored.speakingOrder, game.speakingOrder);
+  restored.eliminate(restored.speakingOrder[1]);
+  assert.equal(restored.firstSpeaker, game.speakingOrder[2]);
+});
+
 // -- Éliminations et victoire ------------------------------------------
 
 test('aucune élimination avant que toutes les cartes soient prises', () => {

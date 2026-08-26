@@ -208,6 +208,60 @@ def test_speaking_order_ignores_cards_still_free():
     assert game.speaking_order == ("Alice",)
 
 
+def test_speaking_order_follows_the_profile_order_not_the_cards():
+    """Le tour suit l'ordre où le téléphone a circulé, pas celui des cartes."""
+    game = Game(6, 1, 0, rng=random.Random(2))
+    profils = ["Ana", "Ben", "Cleo", "Dan", "Eve", "Flo"]
+    for carte, nom in zip([4, 0, 5, 2, 3, 1], profils):
+        game.claim(carte, nom)
+
+    assert game.names != tuple(profils)  # les cartes sont dans un autre ordre
+    order = game.speaking_order
+    start = profils.index(order[0])
+    assert list(order) == profils[start:] + profils[:start]
+
+
+def test_the_next_round_opens_on_the_player_after_the_eliminated_one():
+    game = make_game(players=6, undercover=1)
+    order = game.speaking_order
+    victime, suivant = order[2], order[3]
+
+    game.eliminate(victime)
+
+    assert game.first_speaker == suivant
+    assert game.speaking_order[0] == suivant
+
+
+def test_the_turn_wraps_when_the_last_speaker_falls():
+    game = make_game(players=6, undercover=1)
+    order = game.speaking_order
+
+    game.eliminate(order[-1])
+
+    assert game.first_speaker == order[0]
+
+
+def test_the_turn_skips_players_already_out():
+    game = make_game(players=6, undercover=1)
+    order = game.speaking_order
+
+    game.eliminate(order[3])  # celui juste après ouvrira...
+    game.eliminate(order[2])  # ...mais on sort son prédécesseur ensuite
+
+    assert game.first_speaker == order[4]
+
+
+def test_undo_gives_the_turn_back():
+    game = make_game(players=6, undercover=1)
+    avant = game.first_speaker
+    game.eliminate(game.speaking_order[2])
+    assert game.first_speaker != avant
+
+    game.undo_last_elimination()
+
+    assert game.first_speaker == avant
+
+
 # -- Éliminations et victoire ------------------------------------------
 
 

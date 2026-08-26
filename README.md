@@ -77,19 +77,34 @@ Tant que toutes les cartes ne sont pas prises, `winner` vaut `None` et
 `eliminate()` est refusé : une partie à moitié distribuée n'est pas une
 partie.
 
-### Qui ouvre le débat
+### Le tour de parole
 
-Le premier orateur est tiré au sort parmi les cartes qui **ne sont pas**
-Mr. White. Le faire ouvrir reviendrait à lui demander d'inventer un
-indice sans avoir rien entendu — la place la plus intenable de la partie,
-et un Mr. White grillé au premier tour n'a jamais fait une bonne manche.
-Le tirage a lieu à la construction, donc `first_speaker` reste inconnu
-tant que la carte désignée n'a pas trouvé son joueur.
+**Qui ouvre la première manche** est tiré au sort parmi les cartes qui
+**ne sont pas** Mr. White. Le faire ouvrir reviendrait à lui demander
+d'inventer un indice sans avoir rien entendu — la place la plus intenable
+de la partie, et un Mr. White grillé au premier tour n'a jamais fait une
+bonne manche. Le tirage a lieu à la construction, donc `first_speaker`
+reste inconnu tant que la carte désignée n'a pas trouvé son joueur.
 
-`speaking_order` déroule la table à partir de cette carte et fait le tour.
-Les deux façades affichent la liste dans cet ordre plutôt que dans celui
-des cartes : le joueur qui ouvre est en haut, et on descend dans le sens
-du tour. Sans ça, il fallait retenir qui parlait après qui.
+**L'ordre ensuite suit la création des profils**, pas celui des cartes.
+C'est l'ordre dans lequel le téléphone a circulé pendant la distribution,
+donc celui que la table a déjà en tête ; l'ordre des cartes, lui, ne veut
+rien dire pour les joueurs. `speaking_order` prend cette liste et la
+pivote pour commencer par l'orateur de la manche.
+
+**Chaque manche repart après l'éliminé.** Sortir un joueur passe la parole
+à celui qui le suit, au lieu de recommencer du même bout de table :
+
+```
+tour       Ana → Ben → Cléo → Dan → Eve
+Cléo sort  Dan → Eve → Ana → Ben
+Ana sort   Ben → Dan → Eve
+```
+
+Rien n'est mémorisé pour autant : `first_speaker` se recalcule depuis la
+liste des éliminés — c'est le dernier nom sorti qui désigne le suivant.
+Annuler une élimination rend donc aussi la parole à qui l'avait, sans
+qu'aucun code d'annulation n'ait à s'en occuper.
 
 ## Le dictionnaire
 
@@ -277,8 +292,8 @@ anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 ```bash
 python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
 python -m undercover.cli                      # version console
-python -m pytest                              # 61 tests Python
-node --test tests/core.test.js                # 56 tests JavaScript
+python -m pytest                              # 66 tests Python
+node --test tests/core.test.js                # 62 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -311,8 +326,8 @@ undercover/           version console Python
   words.py            2624 paires, 107 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        61 tests Python
-  core.test.js        56 tests JavaScript, les mêmes cas
+  test_core.py        66 tests Python
+  core.test.js        62 tests JavaScript, les mêmes cas
 tools/
   gen_words_js.py     words.py  -> words.js
   gen_icons.py        icônes de la PWA

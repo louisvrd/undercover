@@ -102,6 +102,11 @@ export class Game {
       this.#cards = restore.cards.map((c) => ({ ...c }));
       this.#eliminated = [...restore.eliminated];
       this.#firstCard = restore.firstCard ?? 0;
+      // Une sauvegarde d'avant l'ordre de parole n'a pas la liste : on
+      // retombe sur l'ordre des cartes, qui valait alors ordre de tour.
+      this.#claimed = Array.isArray(restore.claimed)
+        ? [...restore.claimed]
+        : this.#cards.filter((c) => c.owner !== null).map((c) => c.owner);
       this.#pendingGuess = restore.pendingGuess ?? null;
       this.#mrWhiteWon = restore.mrWhiteWon === true;
       return;
@@ -109,6 +114,7 @@ export class Game {
 
     Game.#validate(playerCount, numUndercover, numMrWhite);
     this.#eliminated = [];
+    this.#claimed = [];
     this.#pendingGuess = null;
     this.#mrWhiteWon = false;
     this.#cards = Game.#deal(playerCount, numUndercover, numMrWhite, random, drawPair);
@@ -123,6 +129,7 @@ export class Game {
 
   #cards;
   #eliminated;
+  #claimed;
   #firstCard;
   #pendingGuess;
   #mrWhiteWon;
@@ -216,26 +223,54 @@ export class Game {
     }
 
     card.owner = cleaned;
+    this.#claimed.push(cleaned);
     return { role: card.role, word: card.word };
   }
 
-  /** Le joueur qui ouvre le débat — jamais Mr. White. */
+  /**
+   * Le joueur qui ouvre la manche en cours.
+   *
+   * Au coup d'envoi, c'est la carte tirée à la construction — jamais
+   * Mr. White, qui n'a ni mot ni indice entendu pour ouvrir. Ensuite,
+   * c'est **le joueur qui suit l'éliminé** : le tour reprend là où il
+   * s'est arrêté au lieu de repartir du même bout de table.
+   *
+   * Rien n'est mémorisé : tout se recalcule depuis la liste des éliminés,
+   * donc annuler une élimination rend aussi la parole à qui l'avait.
+   */
   get firstSpeaker() {
-    return this.#cards[this.#firstCard].owner;
+    if (this.#eliminated.length === 0) return this.#cards[this.#firstCard].owner;
+    return this.#nextActiveAfter(this.#eliminated[this.#eliminated.length - 1]);
+  }
+
+  /** Le premier joueur encore en jeu après `name`, en faisant le tour. */
+  #nextActiveAfter(name) {
+    const start = this.#claimed.indexOf(name);
+    if (start === -1) return null;
+
+    const active = new Set(this.activePlayers);
+    const count = this.#claimed.length;
+    for (let step = 1; step <= count; step += 1) {
+      const candidate = this.#claimed[(start + step) % count];
+      if (active.has(candidate)) return candidate;
+    }
+    return null;
   }
 
   /**
-   * Les joueurs dans l'ordre de parole, le premier orateur en tête.
+   * Les joueurs dans l'ordre de parole, celui qui ouvre en tête.
    *
-   * Le tour part de la carte tirée à la construction puis fait le tour de
-   * la table. Les cartes encore libres sont ignorées : l'ordre se complète
-   * au fur et à mesure de la distribution.
+   * Le tour suit **l'ordre où les profils ont été créés**, pas celui des
+   * cartes : c'est l'ordre dans lequel le téléphone a circulé, donc celui
+   * que la table a déjà en tête. Il est simplement pivoté pour commencer
+   * par l'orateur de la manche.
    */
   get speakingOrder() {
-    const count = this.#cards.length;
-    return Array.from({ length: count }, (_, i) => this.#cards[(this.#firstCard + i) % count])
-      .filter((card) => card.owner !== null)
-      .map((card) => card.owner);
+    const order = [...this.#claimed];
+    const speaker = this.firstSpeaker;
+    const start = speaker === null ? -1 : order.indexOf(speaker);
+    if (start === -1) return order;
+    return [...order.slice(start), ...order.slice(0, start)];
   }
 
   // -- Lecture --------------------------------------------------------
@@ -424,6 +459,7 @@ export class Game {
     return {
       cards: this.#cards.map((c) => ({ ...c })),
       eliminated: this.eliminatedPlayers,
+      claimed: [...this.#claimed],
       firstCard: this.#firstCard,
       pendingGuess: this.#pendingGuess,
       mrWhiteWon: this.#mrWhiteWon,

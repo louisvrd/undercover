@@ -126,6 +126,7 @@ class Game:
         self._validate(player_count, num_undercover, num_mr_white)
         self._rng = rng or random.Random()
         self._eliminated: list[str] = []
+        self._claimed: list[str] = []  # l'ordre où les profils ont été créés
         self._pending_guess: str | None = None
         self._mr_white_won = False
         self._cards = self._deal(
@@ -221,24 +222,54 @@ class Game:
             raise RuleError(f"{cleaned} a déjà pris une carte")
 
         card.owner = cleaned
+        self._claimed.append(cleaned)
         return card.role, card.word
 
     @property
     def first_speaker(self) -> str | None:
-        """Le joueur qui ouvre le débat — jamais Mr. White."""
-        return self._cards[self._first_card].owner
+        """Le joueur qui ouvre la manche en cours.
+
+        Au coup d'envoi, c'est la carte tirée à la construction — jamais
+        Mr. White, qui n'a ni mot ni indice entendu pour ouvrir. Ensuite,
+        c'est **le joueur qui suit l'éliminé** : le tour reprend là où il
+        s'est arrêté au lieu de repartir du même bout de table.
+
+        Rien n'est mémorisé : la propriété se recalcule à partir de la
+        liste des éliminés, donc annuler une élimination rend aussi la
+        parole à qui l'avait.
+        """
+        if not self._eliminated:
+            return self._cards[self._first_card].owner
+        return self._next_active_after(self._eliminated[-1])
+
+    def _next_active_after(self, name: str) -> str | None:
+        """Le premier joueur encore en jeu après `name`, en faisant le tour."""
+        if name not in self._claimed:
+            return None
+        active = set(self.active_players)
+        start = self._claimed.index(name)
+        count = len(self._claimed)
+        for step in range(1, count + 1):
+            candidate = self._claimed[(start + step) % count]
+            if candidate in active:
+                return candidate
+        return None
 
     @property
     def speaking_order(self) -> tuple[str, ...]:
-        """Les joueurs dans l'ordre de parole, le premier orateur en tête.
+        """Les joueurs dans l'ordre de parole, celui qui ouvre en tête.
 
-        Le tour part de la carte tirée à la construction puis fait le tour
-        de la table. Les cartes encore libres sont ignorées : l'ordre se
-        complète au fur et à mesure de la distribution.
+        Le tour suit **l'ordre où les profils ont été créés**, pas celui
+        des cartes : c'est l'ordre dans lequel le téléphone a circulé,
+        donc celui que la table a déjà en tête. Il est simplement pivoté
+        pour commencer par l'orateur de la manche.
         """
-        count = len(self._cards)
-        tour = (self._cards[(self._first_card + i) % count] for i in range(count))
-        return tuple(card.owner for card in tour if card.owner is not None)
+        order = tuple(self._claimed)
+        speaker = self.first_speaker
+        if speaker is None or speaker not in order:
+            return order
+        start = order.index(speaker)
+        return order[start:] + order[:start]
 
     # -- Lecture ---------------------------------------------------------
 
