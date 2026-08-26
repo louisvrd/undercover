@@ -86,7 +86,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("hippopotame", "bison"), ("écureuil", "souris"), ("singe", "rat"),
         ("chimpanzé", "koala"), ("renne", "bison"), ("hippopotame", "crocodile"),
         ("hyène", "gazelle"), ("écureuil", "hérisson"), ("taupe", "rat"),
-        ("souris", "castor"), ("morse", "baleine"),
+        ("souris", "castor"), ("morse", "baleine"), ("antilope", "buffle"),
+        ("puma", "lynx"), ("marmotte", "castor"), ("furet", "belette"),
+        ("dromadaire", "chameau"), ("suricate", "écureuil"),
     ),
     "Oiseaux": (
         ("aigle", "faucon"), ("aigle", "vautour"), ("corbeau", "pie"),
@@ -97,7 +99,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("hibou", "paon"), ("perroquet", "canari"), ("pigeon", "faisan"),
         ("hirondelle", "merle"), ("colibri", "toucan"), ("plume", "nid"),
         ("hibou", "pie"), ("moineau", "merle"), ("hirondelle", "colibri"),
-        ("oiseau", "poisson"), ("oiseau", "insecte"),
+        ("oiseau", "poisson"), ("oiseau", "insecte"), ("cigogne", "héron"),
+        ("pélican", "mouette"), ("mésange", "moineau"), ("caille", "faisan"),
+        ("grue", "flamant"),
     ),
     "Mer et rivière": (
         ("dauphin", "requin"), ("requin", "raie"), ("baleine", "orque"),
@@ -105,9 +109,11 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("moule", "huître"), ("corail", "algue"), ("hippocampe", "poisson-clown"),
         ("tortue", "crocodile"), ("marée", "courant"), ("dauphin", "baleine"),
         ("thon", "sardine"), ("poulpe", "calmar"), ("orque", "phoque"),
-        ("crevette", "moule"), ("huître", "coquillage"), ("méduse", "oursin"),
+        ("crevette", "moule"), ("méduse", "oursin"),
         ("algue", "sable"), ("sardine", "morue"), ("marée", "vague"),
-        ("courant", "écume"), ("poisson", "coquillage"),
+        ("courant", "écume"), ("poisson", "coquillage"), ("truite", "saumon"),
+        ("maquereau", "sardine"), ("morue", "thon"), ("langouste", "homard"),
+        ("écrevisse", "crevette"),
     ),
     "Insectes et petites bêtes": (
         ("abeille", "guêpe"), ("abeille", "bourdon"), ("guêpe", "frelon"),
@@ -133,6 +139,7 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("pastèque", "grenade"), ("noix", "pistache"), ("amande", "cacahuète"),
         ("courge", "vigne"), ("pomme", "poire"), ("cerise", "fraise"),
         ("framboise", "myrtille"), ("ananas", "kiwi"), ("pamplemousse", "mandarine"),
+        ("groseille", "cassis"),
     ),
     "Légumes": (
         ("carotte", "navet"), ("navet", "radis"), ("radis", "betterave"),
@@ -145,7 +152,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("tomate", "aubergine"), ("navet", "fenouil"), ("chou-fleur", "haricot"),
         ("épinard", "asperge"), ("oignon", "piment"), ("maïs", "riz"),
         ("chou-fleur", "salade"), ("oignon", "ail"), ("échalote", "céleri"),
-        ("haricot", "petit"), ("piment", "truffe"),
+        ("haricot", "petit"), ("piment", "truffe"), ("endive", "artichaut"),
+        ("potiron", "courge"), ("cèpe", "champignon"), ("blette", "épinard"),
     ),
     "Plats": (
         ("pizza", "quiche"), ("burger", "sandwich"), ("sandwich", "wrap"),
@@ -159,7 +167,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("frites", "purée"), ("steak", "saucisse"), ("brochette", "croquette"),
         ("chips", "nugget"), ("quiche", "gratin"), ("raviolis", "lasagnes"),
         ("tajine", "chili"), ("sushi", "raviolis"), ("lasagnes", "gratin"),
-        ("soupe", "purée"), ("galette", "omelette"),
+        ("soupe", "purée"), ("galette", "omelette"), ("blanquette", "bourguignon"),
+        ("pot-au-feu", "ragoût"), ("escalope", "côtelette"), ("gnocchis", "tagliatelles"),
+        ("risotto", "paella"), ("nem", "maki"), ("bouillon", "soupe"),
     ),
     "Desserts et sucreries": (
         ("gâteau", "tarte"), ("tarte", "flan"), ("macaron", "meringue"),
@@ -171,7 +181,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("compote", "gelée"), ("sorbet", "milkshake"), ("chocolat", "vanille"),
         ("bonbon", "chewing-gum"), ("sucette", "biscuit"), ("sucre", "truffe"),
         ("flan", "compote"), ("chewing-gum", "biscuit"), ("cookie", "macaron"),
-        ("meringue", "brioche"), ("gelée", "sirop"),
+        ("meringue", "brioche"), ("gelée", "sirop"), ("madeleine", "religieuse"),
+        ("praline", "nougat"), ("crumble", "tarte"), ("cupcake", "muffin"),
+        ("éclair", "religieuse"),
     ),
     "Boissons": (
         ("soda", "limonade"), ("bière", "cidre"), ("vin", "champagne"),
@@ -179,7 +191,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("milkshake", "smoothie"), ("bouteille", "gourde"), ("bar", "terrasse"),
         ("whisky", "gin"), ("cola", "limonade"), ("café", "thé"),
         ("eau", "jus"), ("cola", "sirop"), ("verre", "tasse"),
-        ("glaçon", "paille"),
+        ("glaçon", "paille"), ("cappuccino", "expresso"), ("sangria", "punch"),
+        ("tequila", "vodka"), ("carafe", "gobelet"),
     ),
     "Épicerie": (
         ("pain", "baguette"), ("moutarde", "mayonnaise"), ("mayonnaise", "ketchup"),
@@ -188,7 +201,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("menthe", "thym"), ("conserve", "sachet"), ("fromage", "yaourt"),
         ("fromage", "beurre"), ("lait", "yaourt"), ("beurre", "huile"),
         ("œuf", "lait"), ("ketchup", "vinaigre"), ("pâtes", "riz"),
-        ("céréales", "farine"), ("confiture", "beurre"),
+        ("céréales", "farine"), ("confiture", "beurre"), ("camembert", "roquefort"),
+        ("gruyère", "mozzarella"), ("emmental", "cheddar"), ("comté", "feta"),
+        ("chorizo", "salami"), ("basilic", "persil"), ("origan", "safran"),
     ),
     "Vêtements": (
         ("chemise", "polo"), ("polo", "tee-shirt"), ("pull", "gilet"),
@@ -203,7 +218,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("doudoune", "imperméable"), ("uniforme", "tailleur"), ("pli", "bouton"),
         ("sweat", "gilet"), ("robe", "jupe"), ("short", "collant"),
         ("kimono", "cape"), ("salopette", "uniforme"), ("poche", "bouton"),
-        ("pli", "tissu"), ("cuir", "soie"),
+        ("pli", "tissu"), ("cuir", "soie"), ("cardigan", "blazer"),
+        ("débardeur", "tee-shirt"), ("kilt", "jupe"), ("poncho", "châle"),
+        ("caleçon", "boxer"), ("dentelle", "velours"), ("lin", "coton"),
     ),
     "Chaussures et accessoires": (
         ("sandale", "tong"), ("lacet", "boucle"), ("semelle", "talon"),
@@ -212,7 +229,10 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("mouchoir", "serviette"), ("lacet", "semelle"), ("bretelles", "lunettes"),
         ("basket", "sandale"), ("botte", "tong"), ("talon", "boucle"),
         ("chapeau", "foulard"), ("écharpe", "gant"), ("sac", "valise"),
-        ("parapluie", "serviette"), ("mouchoir", "montre"),
+        ("parapluie", "serviette"), ("mouchoir", "montre"), ("mocassin", "escarpin"),
+        ("ballerine", "bottine"), ("espadrille", "basket"), ("béret", "casquette"),
+        ("cagoule", "bonnet"), ("turban", "foulard"), ("moufle", "gant"),
+        ("botte", "sandale"),
     ),
     "Corps humain": (
         ("coude", "genou"), ("genou", "cheville"), ("poignet", "cheville"),
@@ -239,7 +259,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("massage", "étirement"), ("rhume", "toux"), ("grippe", "fièvre"),
         ("migraine", "nausée"), ("vertige", "frisson"), ("ampoule", "piqûre"),
         ("morsure", "allergie"), ("éternuement", "rappel"), ("fièvre", "toux"),
-        ("allergie", "vaccin"),
+        ("allergie", "vaccin"), ("gélule", "comprimé"), ("perfusion", "seringue"),
+        ("bronchite", "angine"), ("eczéma", "urticaire"), ("échographie", "scanner"),
+        ("compresse", "pansement"),
     ),
     "Pièces et bâti": (
         ("chambre", "bureau"), ("bureau", "atelier"), ("atelier", "garage"),
@@ -311,7 +333,7 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
     "Bateaux et eau": (
         ("canoë", "kayak"), ("radeau", "ponton"), ("port", "quai"),
         ("marin", "capitaine"), ("barque", "radeau"), ("phare", "capitaine"),
-        ("bateau", "barque"), ("voilier", "kayak"), ("canoë", "radeau"),
+        ("voilier", "kayak"), ("canoë", "radeau"),
         ("ancre", "voile"),
     ),
     "Air et espace": (
@@ -347,7 +369,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("tronc", "sève"), ("feuille", "gland"), ("prunier", "palmier"),
         ("chêne", "sapin"), ("pin", "palmier"), ("noyer", "bambou"),
         ("cactus", "fougère"), ("mousse", "herbe"), ("gland", "bourgeon"),
-        ("fleur", "arbre"),
+        ("fleur", "arbre"), ("bouleau", "peuplier"), ("tilleul", "marronnier"),
+        ("platane", "cyprès"), ("roseau", "bambou"), ("hêtre", "chêne"),
     ),
     "Sports": (
         ("football", "rugby"), ("basketball", "handball"), ("volley", "badminton"),
@@ -363,7 +386,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("cyclisme", "équitation"), ("volley", "baseball"), ("randonnée", "alpinisme"),
         ("course", "marathon"), ("sprint", "marche"), ("trampoline", "acrobatie"),
         ("tennis", "ping-pong"), ("golf", "bowling"), ("pétanque", "billard"),
-        ("karaté", "lutte"), ("surf", "voile"),
+        ("karaté", "lutte"), ("surf", "voile"), ("squash", "badminton"),
+        ("waterpolo", "natation"), ("curling", "bowling"), ("pilates", "yoga"),
+        ("zumba", "danse"), ("padel", "tennis"),
     ),
     "Équipement sportif": (
         ("raquette", "batte"), ("batte", "crosse"), ("filet", "but"),
@@ -373,6 +398,7 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("bâton", "fixation"), ("arc", "arbalète"), ("crosse", "arc"),
         ("coupe", "podium"), ("vestiaire", "terrain"), ("ballon", "raquette"),
         ("maillot", "short"), ("médaille", "coupe"), ("podium", "piste"),
+        ("haltère", "corde"), ("tatami", "tapis"), ("tribune", "podium"),
     ),
     "Jeux": (
         ("cartes", "tarot"), ("toupie", "yoyo"), ("monopoly", "cluedo"),
@@ -410,7 +436,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("militaire", "douanier"), ("maçon", "menuisier"), ("peintre", "serrurier"),
         ("mécanicien", "horloger"), ("photographe", "journaliste"), ("professeur", "éducateur"),
         ("acteur", "chanteur"), ("danseur", "musicien"), ("clown", "arbitre"),
-        ("guide", "astronome"),
+        ("guide", "astronome"), ("aide-soignant", "infirmier"), ("anesthésiste", "chirurgien"),
+        ("traiteur", "cuisinier"), ("sommelier", "barman"), ("acrobate", "clown"),
+        ("apiculteur", "agriculteur"), ("ébéniste", "menuisier"),
     ),
     "Instruments": (
         ("saxophone", "clarinette"), ("trombone", "tuba"), ("cor", "tuba"),
@@ -419,7 +447,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("orgue", "accordéon"), ("corde", "touche"), ("pédale", "partition"),
         ("étui", "guitare"), ("violon", "harpe"), ("flûte", "clarinette"),
         ("saxophone", "trompette"), ("tambour", "cymbale"), ("xylophone", "accordéon"),
-        ("orgue", "cor"),
+        ("orgue", "cor"), ("harmonica", "accordéon"), ("banjo", "guitare"),
+        ("ukulélé", "violon"), ("contrebasse", "harpe"), ("maracas", "tambour"),
+        ("gong", "cymbale"),
     ),
     "Musique et spectacle": (
         ("rock", "punk"), ("punk", "metal"), ("jazz", "blues"),
@@ -428,11 +458,13 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("rideau", "décor"), ("costume", "maquillage"), ("applaudissement", "rappel"),
         ("billet", "programme"), ("rock", "jazz"), ("rap", "pop"),
         ("fanfare", "micro"), ("maquillage", "perruque"), ("cirque", "théâtre"),
+        ("symphonie", "chorale"), ("country", "folk"), ("disco", "funk"),
     ),
     "Arts et loisirs créatifs": (
         ("peinture", "aquarelle"), ("fresque", "graffiti"), ("collage", "origami"),
         ("tricot", "crochet"), ("montage", "retouche"), ("crayon", "feutre"),
-        ("moule", "empreinte"), ("galerie", "atelier"),
+        ("moule", "empreinte"), ("galerie", "atelier"), ("gouache", "aquarelle"),
+        ("pastel", "crayon"), ("acrylique", "peinture"), ("porcelaine", "poterie"),
     ),
     "École": (
         ("règle", "équerre"), ("cahier", "classeur"), ("classeur", "chemise"),
@@ -449,6 +481,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("philosophie", "économie"), ("exposé", "leçon"), ("chapitre", "examen"),
         ("concours", "note"), ("moyenne", "bulletin"), ("stylo", "règle"),
         ("gomme", "colle"), ("tableau", "craie"), ("maths", "histoire"),
+        ("correcteur", "gomme"), ("encyclopédie", "dictionnaire"), ("médiathèque", "bibliothèque"),
+        ("physique", "chimie"),
     ),
     "Bureau et informatique": (
         ("ordinateur", "tablette"), ("imprimante", "scanner"), ("serveur", "routeur"),
@@ -469,6 +503,9 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("galerie", "patinoire"), ("brasserie", "cinéma"), ("théâtre", "musée"),
         ("gymnase", "piscine"), ("patinoire", "spa"), ("panneau", "lampadaire"),
         ("pharmacie", "librairie"), ("marché", "restaurant"), ("gare", "aéroport"),
+        ("commissariat", "caserne"), ("préfecture", "mairie"), ("parfumerie", "bijouterie"),
+        ("brocante", "marché"), ("vide-grenier", "foire"), ("pressing", "poste"),
+        ("supérette", "épicerie"),
     ),
     "Voyage": (
         ("bagage", "colis"), ("passeport", "visa"), ("hôtel", "auberge"),
@@ -476,12 +513,16 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("carte", "boussole"), ("boussole", "GPS"), ("plage", "station"),
         ("gourde", "thermos"), ("duvet", "matelas"), ("valise", "bagage"),
         ("colis", "passeport"), ("visa", "billet"), ("détour", "étape"),
-        ("réception", "plage"), ("passeport", "billet"),
+        ("réception", "plage"), ("passeport", "billet"), ("croisière", "circuit"),
+        ("itinéraire", "carte"), ("dortoir", "chambre"), ("gîte", "auberge"),
+        ("escale", "étape"),
     ),
     "Fêtes et célébrations": (
         ("réception", "cocktail"), ("bal", "soirée"), ("carnaval", "défilé"),
         ("emballage", "ruban"), ("masque", "perruque"), ("sapin", "crèche"),
         ("cloche", "trompette"), ("vœux", "résolution"), ("manège", "stand"),
+        ("baptême", "communion"), ("fiançailles", "mariage"), ("banquet", "buffet"),
+        ("anniversaire", "carnaval"), ("cadeau", "emballage"), ("bougie", "guirlande"),
     ),
     "Temps et calendrier": (
         ("seconde", "minute"), ("heure", "journée"), ("matin", "après-midi"),
@@ -503,7 +544,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("fourrure", "peau"), ("laine", "cachemire"), ("nylon", "polyester"),
         ("liège", "paille"), ("cire", "résine"), ("pétrole", "goudron"),
         ("papier", "plastique"), ("cuivre", "zinc"), ("latex", "nylon"),
-        ("cachemire", "cuir"), ("fourrure", "feutre"),
+        ("cachemire", "cuir"), ("fourrure", "feutre"), ("bronze", "cuivre"),
+        ("porcelaine", "marbre"), ("acier", "aluminium"), ("velours", "cachemire"),
     ),
     "Formes et couleurs": (
         ("rouge", "bordeaux"), ("rose", "fuchsia"), ("orange", "corail"),
@@ -561,7 +603,8 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
     "Cinéma et télévision": (
         ("film", "série"), ("épisode", "saison"), ("réalisateur", "producteur"),
         ("animation", "marionnette"), ("salle", "écran"), ("acteur", "réalisateur"),
-        ("décor", "accessoire"), ("accessoire", "perruque"),
+        ("décor", "accessoire"), ("accessoire", "perruque"), ("thriller", "comédie"),
+        ("générique", "bande-annonce"), ("sous-titre", "doublage"),
     ),
     "Camping et plein air": (
         ("duvet", "couverture"), ("gourde", "filtre"), ("lampe", "bougie"),
@@ -577,6 +620,7 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("publication", "commentaire"), ("filtre", "effet"), ("story", "direct"),
         ("wifi", "données"), ("cookie", "historique"), ("bug", "panne"),
         ("wifi", "antenne"), ("historique", "données"), ("essai", "certificat"),
+        ("notification", "alerte"), ("playlist", "chaîne"), ("forfait", "abonnement"),
     ),
     "Brawl Stars": (
         ("Bull", "Frank"), ("Rosa", "Jacky"), ("Darryl", "Ash"),
@@ -604,6 +648,19 @@ PAIRS_BY_THEME: dict[str, tuple[WordPair, ...]] = {
         ("rose", "tulipe"), ("marguerite", "coquelicot"), ("iris", "lys"),
         ("lilas", "lavande"), ("pivoine", "tournesol"), ("violette", "muguet"),
         ("orchidée", "cactus"), ("bouquet", "couronne"), ("tige", "pétale"),
+        ("jonquille", "narcisse"), ("jacinthe", "tulipe"), ("hortensia", "glycine"),
+        ("chrysanthème", "pivoine"), ("nénuphar", "iris"), ("pollen", "nectar"),
+        ("bleuet", "coquelicot"),
+    ),
+    "Bijoux et parures": (
+        ("saphir", "rubis"), ("émeraude", "diamant"), ("alliance", "bague"),
+        ("pendentif", "collier"), ("broche", "épingle"), ("diadème", "couronne"),
+        ("perle", "or"), ("argent", "bronze"),
+    ),
+    "Bâtiments et monuments": (
+        ("basilique", "abbaye"), ("synagogue", "pagode"), ("donjon", "rempart"),
+        ("manoir", "château"), ("colonne", "statue"), ("cathédrale", "chapelle"),
+        ("pyramide", "temple"),
     ),
 }
 

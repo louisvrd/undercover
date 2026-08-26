@@ -109,8 +109,8 @@ qu'aucun code d'annulation n'ait à s'en occuper.
 
 ## Le dictionnaire
 
-**1210 paires écrites à la main**, 1346 mots distincts, réparties en
-53 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
+**1361 paires écrites à la main**, 1556 mots distincts, réparties en
+55 thèmes — plus un thème **exclusif** de 60 paires, éteint par défaut.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -222,14 +222,21 @@ fromage de chez nous », donc les deux camps donnent le même indice et
 plus personne ne peut trancher. La profondeur casse la manche des deux
 côtés à la fois.
 
-La barre retenue : **un joueur de douze ans saurait-il le décrire ?** Ce
-qui laisse `chat`, `fromage`, `stylo`, `marteau` — et écarte `picodon`,
-`corégone`, `bandonéon`, `télérupteur`.
+La barre n'est pas « un seul mot par famille » mais **un joueur de douze
+ans saurait-il le décrire ?**. Un `camembert`, un `saphir`, une
+`madeleine`, un `béret` sont des seconds rangs que tout le monde décrit
+sans effort : ils restent, à côté de `fromage`. Ce qui sort, c'est le mot
+qu'on ne connaît que par métier — `picodon`, `corégone`, `bandonéon`,
+`télérupteur`.
 
-Le compte est donc passé de 2624 à **1210 paires**. C'est le prix, et il
+Un générique et un membre de sa famille ne se croisent jamais dans une
+même paire, sinon c'est un hyperonyme (règle 4) : `fromage` tombe avec
+`yaourt` ou `beurre`, jamais avec `camembert`.
+
+Le compte est donc passé de 2624 à **1361 paires**. C'est le prix, et il
 est juste : une paire que personne ne sait décrire ne fait pas une
-manche, elle la gâche. À 1210 paires il faut jouer 1210 fois avant de
-voir un mot revenir.
+manche, elle la gâche. À 1361 paires il faut jouer 1361 fois avant de
+voir une paire revenir.
 
 ### Le mode Brawl Stars
 
@@ -394,7 +401,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            1210 paires, 53 thèmes + 1 exclusif
+  words.py            1361 paires, 55 thèmes + 1 exclusif
   cli.py              terminal            -> core.py
 tests/
   test_core.py        68 tests Python
