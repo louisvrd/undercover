@@ -30,6 +30,62 @@ Le nombre de rôles spéciaux est plafonné à `(joueurs - 1) // 2` pour que
 les civils soient strictement majoritaires au coup d'envoi — sinon la
 condition de victoire des imposteurs serait déjà remplie au premier tour.
 
+### Le dernier mot de Mr. White
+
+Un Mr. White démasqué n'est pas encore battu : au moment où il sort, il
+écrit le mot des civils sur l'app. **S'il trouve, les imposteurs gagnent
+sur-le-champ**, quel que soit l'état du tableau.
+
+C'est la seule contrepartie du rôle. Mr. White joue toute la partie sans
+mot et n'a qu'une chose à faire : recouper les indices des autres. Sans
+cette main finale, être démasqué au premier tour ne lui laisserait rien à
+jouer — et il n'aurait aucune raison d'écouter.
+
+Deux conséquences dans le moteur :
+
+- **La partie se suspend.** Tant que la proposition n'est pas jouée,
+  `winner` reste `None` et `eliminate()` est refusé. Sortir le dernier
+  imposteur ne suffit donc plus à faire gagner les civils : le tableau dit
+  « civils », la règle dit « attends ».
+- **Le mot ne s'affiche que si la partie s'arrête là.** Une proposition
+  ratée alors qu'un Undercover est encore en jeu ne révèle rien —
+  l'annoncer donnerait la réponse à toute la table.
+
+La comparaison ignore la casse, les accents et la ponctuation : le mot est
+tapé au doigt sur un téléphone, et « Porte-Clés » vaut « porte cles ».
+Ce qui reste — les lettres — doit correspondre exactement, parce que c'est
+bien le mot qu'il faut deviner et pas une approximation.
+
+Annuler l'élimination annule aussi la proposition : Mr. White revient en
+jeu et sa main lui est rendue.
+
+### On tire des cartes, pas des joueurs
+
+Les rôles ne sont pas attribués aux noms saisis : ils sont posés sur des
+**cartes anonymes**, que chacun vient revendiquer à son tour. `Game` se
+construit avec un *nombre* de joueurs, et `claim(carte, nom)` associe
+ensuite une personne à une carte.
+
+Ça ne change rien aux probabilités — mais ça déplace le hasard de
+l'application vers la table. Quand l'app annonce « Alice, tu es
+Undercover », il faut la croire sur parole ; quand Alice choisit
+elle-même la carte 3 parmi celles qui restent, il n'y a plus rien à
+croire. C'est aussi ce qui rend le passage du téléphone naturel : l'écran
+montre les cartes libres, pas une file de noms à respecter.
+
+Tant que toutes les cartes ne sont pas prises, `winner` vaut `None` et
+`eliminate()` est refusé : une partie à moitié distribuée n'est pas une
+partie.
+
+### Qui ouvre le débat
+
+Le premier orateur est tiré au sort parmi les cartes qui **ne sont pas**
+Mr. White. Le faire ouvrir reviendrait à lui demander d'inventer un
+indice sans avoir rien entendu — la place la plus intenable de la partie,
+et un Mr. White grillé au premier tour n'a jamais fait une bonne manche.
+Le tirage a lieu à la construction, donc `first_speaker` reste inconnu
+tant que la carte désignée n'a pas trouvé son joueur.
+
 ## Le dictionnaire
 
 **257 paires écrites à la main**, 514 mots dont aucun ne se répète,
@@ -84,6 +140,13 @@ navigateur refuse d'installer une PWA et de lancer le service worker).
 Les photos de profil et la composition du groupe restent dans le
 stockage du navigateur, sur l'appareil. Rien n'est envoyé nulle part.
 
+La partie en cours y est sauvegardée elle aussi, à chaque étape. Un
+téléphone qui passe de main en main finit toujours par se verrouiller ou
+par voir son onglet vidé par iOS : au rechargement, `Game.restore()`
+remonte la partie — cartes distribuées, éliminations, manche en cours —
+et l'app rouvre l'écran où le groupe s'était arrêté. Une sauvegarde
+illisible est ignorée plutôt que de faire planter le démarrage.
+
 ### Publier une mise à jour
 
 ```bash
@@ -106,8 +169,8 @@ anciens fichiers sous un nouveau numéro, et le téléphone reste bloqué.
 ```bash
 python -m http.server 8000 --directory docs   # http://127.0.0.1:8000
 python -m undercover.cli                      # version console
-python -m pytest                              # 35 tests Python
-node --test tests/core.test.js                # 28 tests JavaScript
+python -m pytest                              # 53 tests Python
+node --test tests/core.test.js                # 49 tests JavaScript
 ```
 
 `localhost` est traité comme un contexte sécurisé : la PWA et son service
@@ -139,8 +202,8 @@ undercover/           version console Python
   words.py            257 paires, 11 thèmes
   cli.py              terminal            -> core.py
 tests/
-  test_core.py        35 tests Python
-  core.test.js        28 tests JavaScript, les mêmes cas
+  test_core.py        53 tests Python
+  core.test.js        49 tests JavaScript, les mêmes cas
 tools/
   gen_words_js.py     words.py  -> words.js
   gen_icons.py        icônes de la PWA

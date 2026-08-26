@@ -7,10 +7,10 @@
  *
  * IMPORTANT : incrémenter CACHE_VERSION à chaque déploiement, sinon les
  * téléphones qui ont déjà l'app continueront de servir l'ancienne
- * version depuis leur cache.
+ * version depuis leur cache. APP_VERSION dans app.js doit suivre.
  */
 
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = `undercover-${CACHE_VERSION}`;
 
 const ASSETS = [

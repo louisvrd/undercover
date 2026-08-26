@@ -55,6 +55,19 @@ def ask_names(count: int) -> list[str]:
     return names
 
 
+def ask_choice(prompt: str, choices: list[int]) -> int:
+    while True:
+        raw = input(prompt).strip()
+        try:
+            value = int(raw)
+        except ValueError:
+            print("Entrez un nombre.")
+            continue
+        if value in choices:
+            return value
+        print("Cette carte n'est pas libre.")
+
+
 def ask_player(prompt: str, choices: tuple[str, ...]) -> str:
     lookup = {name.casefold(): name for name in choices}
     while True:
@@ -64,7 +77,33 @@ def ask_player(prompt: str, choices: tuple[str, ...]) -> str:
         print("Ce joueur n'est pas en jeu.")
 
 
-def setup_game() -> Game:
+def ask_guess(game: Game, name: str) -> bool:
+    """Fait jouer la dernière main d'un Mr. White éliminé.
+
+    Renvoie True s'il a trouvé. Le mot des civils n'est révélé que si la
+    partie s'arrête là : l'annoncer alors qu'un Undercover est encore en
+    jeu offrirait la réponse à toute la table.
+    """
+    print(f"\n{name}, vous sortez — mais vous avez une dernière chance.")
+    print("Nommez le mot des civils et les imposteurs l'emportent.")
+
+    while True:
+        try:
+            result = game.guess(input("\nVotre proposition : "))
+            break
+        except RuleError as error:
+            print(error)
+
+    if result.correct:
+        print(f"\n« {result.word} » — c'était bien le mot !")
+    else:
+        print(f"\n« {result.word} » : raté.")
+        if game.is_over:
+            print(f"Le mot des civils était : {result.answer}")
+    return result.correct
+
+
+def setup_game() -> tuple[Game, list[str]]:
     clear_screen()
     print("=== Configuration de la partie ===\n")
 
@@ -76,22 +115,31 @@ def setup_game() -> Game:
     num_undercover = ask_int("Combien d'Undercover ? : ", 0, allowed)
     num_mr_white = ask_int("Combien de Mr. White ? : ", 0, allowed - num_undercover)
 
-    return Game(names, num_undercover, num_mr_white)
+    return Game(num_players, num_undercover, num_mr_white), names
 
 
-def show_words(game: Game) -> None:
-    for name in game.names:
+def deal_cards(game: Game, names: list[str]) -> None:
+    """Chacun choisit une carte, puis découvre le mot qu'elle porte."""
+    for name in names:
+        free = [i for i, owner in enumerate(game.owners) if owner is None]
+
         clear_screen()
-        input(f"{name}, appuyez sur Entrée pour voir votre mot...")
+        print(f"{name}, choisissez une carte.\n")
+        print("  " + "   ".join(f"[{i + 1}]" for i in free))
+        choice = ask_choice("\nNuméro de la carte : ", [i + 1 for i in free])
+
+        _, word = game.claim(choice - 1, name)
         clear_screen()
-        word = game.word_of(name)
         if word is None:
             print(f"\n{name}, vous êtes Mr. White : vous n'avez aucun mot.")
             print("Écoutez les autres et faites semblant.")
         else:
             print(f"\n{name}, votre mot est : {word}")
         input("\nEntrée quand vous l'avez mémorisé (l'écran sera effacé)...")
+
     clear_screen()
+    print(f"\n{game.first_speaker} commence le débat.")
+    input("\nEntrée pour lancer la partie...")
 
 
 def reveal(game: Game) -> None:
@@ -102,10 +150,11 @@ def reveal(game: Game) -> None:
         print(f"  {player.name}{status} — {ROLE_LABELS[player.role]} — {word}")
 
 
-def play(game: Game) -> None:
-    show_words(game)
+def play(game: Game, names: list[str]) -> None:
+    deal_cards(game, names)
 
     round_num = 1
+    won_by_guess = False
     while not game.is_over:
         print(f"\n=== Manche {round_num} ===")
         print("\nEncore en jeu :")
@@ -117,12 +166,19 @@ def play(game: Game) -> None:
         result = game.eliminate(name)
 
         print(f"\n{result.player} était {ROLE_LABELS[result.role]} !")
-        if not result.game_over:
+        if result.awaiting_guess:
+            won_by_guess = ask_guess(game, result.player)
+
+        # La partie peut se terminer sur l'élimination comme sur la
+        # proposition qui la suit : c'est l'état du jeu qui tranche.
+        if not game.is_over:
             input("\nEntrée pour la manche suivante...")
             clear_screen()
         round_num += 1
 
-    if game.winner is Team.CIVILIANS:
+    if won_by_guess:
+        print("\nMr. White a trouvé le mot en sortant : les imposteurs gagnent !")
+    elif game.winner is Team.CIVILIANS:
         print("\nLes civils ont gagné : tous les imposteurs sont démasqués !")
     else:
         print("\nLes imposteurs ont gagné : ils ont tenu jusqu'au bout !")
@@ -133,7 +189,7 @@ def main() -> None:
     try:
         while True:
             try:
-                play(setup_game())
+                play(*setup_game())
             except RuleError as error:
                 print(f"\nConfiguration impossible : {error}")
 

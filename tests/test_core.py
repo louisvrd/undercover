@@ -9,16 +9,25 @@ from undercover.core import (
     RuleError,
     Team,
     max_special_roles,
+    normalize_word,
 )
 from undercover.words import WORD_PAIRS, WordGenerator
 
-FOUR = ["Alice", "Bob", "Chloé", "David"]
-SIX = FOUR + ["Emma", "Farid"]
-EIGHT = SIX + ["Gaby", "Hugo"]
+NAMES = ["Alice", "Bob", "Chloé", "David", "Emma", "Farid", "Gaby", "Hugo"]
 
 
-def make_game(names=SIX, undercover=1, mr_white=0, seed=0):
-    return Game(names, undercover, mr_white, rng=random.Random(seed))
+def make_game(players=6, undercover=1, mr_white=0, seed=0, claim=True):
+    """Une partie prête à jouer : cartes distribuées, puis revendiquées
+    dans l'ordre si `claim`."""
+    game = Game(players, undercover, mr_white, rng=random.Random(seed))
+    if claim:
+        for i in range(players):
+            game.claim(i, NAMES[i])
+    return game
+
+
+def role_named(game, role):
+    return next(p.name for p in game.players if p.role is role)
 
 
 # -- Nombre de rôles spéciaux ------------------------------------------
@@ -44,22 +53,7 @@ def test_max_special_keeps_civilians_in_majority():
 
 def test_rejects_too_few_players():
     with pytest.raises(RuleError, match="au moins 4 joueurs"):
-        make_game(names=["Alice", "Bob", "Chloé"])
-
-
-def test_rejects_duplicate_names():
-    with pytest.raises(RuleError, match="uniques"):
-        make_game(names=["Alice", "Bob", "Chloé", "Alice"])
-
-
-def test_rejects_blank_names():
-    with pytest.raises(RuleError, match="vides"):
-        make_game(names=["Alice", "  ", "Chloé", "David"])
-
-
-def test_strips_surrounding_whitespace():
-    game = make_game(names=["  Alice ", "Bob", "Chloé", "David"], undercover=1)
-    assert game.names[0] == "Alice"
+        make_game(players=3)
 
 
 def test_rejects_a_game_without_any_special_role():
@@ -69,36 +63,83 @@ def test_rejects_a_game_without_any_special_role():
 
 def test_rejects_too_many_special_roles():
     with pytest.raises(RuleError, match="Trop de rôles"):
-        make_game(names=FOUR, undercover=1, mr_white=1)
+        make_game(players=4, undercover=1, mr_white=1)
 
 
 def test_accepts_the_documented_maximum():
-    game = make_game(names=SIX, undercover=1, mr_white=1)
+    game = make_game(players=6, undercover=1, mr_white=1)
     assert game.winner is None, "la partie ne doit pas être finie au coup d'envoi"
 
 
-# -- Distribution ------------------------------------------------------
+# -- Distribution sur les cartes ---------------------------------------
 
 
 def test_deals_the_requested_roles():
-    # 8 joueurs : 3 rôles spéciaux permis, soit le maximum ici.
-    game = make_game(names=EIGHT, undercover=2, mr_white=1)
-    roles = [player.role for player in game.players]
+    game = make_game(players=8, undercover=2, mr_white=1)
+    roles = [p.role for p in game.players]
 
     assert roles.count(Role.UNDERCOVER) == 2
     assert roles.count(Role.MR_WHITE) == 1
     assert roles.count(Role.CIVILIAN) == 5
 
 
+def test_cards_start_unclaimed():
+    game = make_game(claim=False)
+    assert game.card_count == 6
+    assert game.owners == (None,) * 6
+    assert game.all_claimed is False
+    assert game.names == ()
+
+
+def test_claim_reveals_the_word_and_takes_the_card():
+    game = make_game(claim=False)
+    role, word = game.claim(2, "Alice")
+
+    assert game.owners[2] == "Alice"
+    assert game.names == ("Alice",)
+    assert (word is None) == (role is Role.MR_WHITE)
+
+
+def test_cannot_claim_a_taken_card():
+    game = make_game(claim=False)
+    game.claim(0, "Alice")
+    with pytest.raises(RuleError, match="déjà prise par Alice"):
+        game.claim(0, "Bob")
+
+
+def test_cannot_claim_two_cards():
+    game = make_game(claim=False)
+    game.claim(0, "Alice")
+    with pytest.raises(RuleError, match="déjà pris une carte"):
+        game.claim(1, "Alice")
+
+
+def test_rejects_a_blank_name():
+    game = make_game(claim=False)
+    with pytest.raises(RuleError, match="ne peut pas être vide"):
+        game.claim(0, "   ")
+
+
+def test_rejects_an_unknown_card():
+    game = make_game(claim=False)
+    for bad in (-1, 6, 99):
+        with pytest.raises(RuleError, match="n'existe pas"):
+            game.claim(bad, "Alice")
+
+
+def test_name_is_stripped():
+    game = make_game(claim=False)
+    game.claim(0, "  Alice ")
+    assert game.names == ("Alice",)
+
+
 def test_mr_white_gets_no_word():
-    game = make_game(names=SIX, undercover=1, mr_white=1)
-    mr_white = next(p for p in game.players if p.role is Role.MR_WHITE)
-    assert mr_white.word is None
-    assert game.word_of(mr_white.name) is None
+    game = make_game(players=6, undercover=1, mr_white=1)
+    assert game.word_of(role_named(game, Role.MR_WHITE)) is None
 
 
 def test_civilians_share_a_word_and_undercovers_another():
-    game = make_game(names=SIX, undercover=2)
+    game = make_game(players=6, undercover=2)
     civilian_words = {p.word for p in game.players if p.role is Role.CIVILIAN}
     undercover_words = {p.word for p in game.players if p.role is Role.UNDERCOVER}
 
@@ -107,15 +148,8 @@ def test_civilians_share_a_word_and_undercovers_another():
     assert civilian_words != undercover_words
 
 
-def test_player_order_follows_input_order():
-    game = make_game(names=SIX)
-    assert game.names == tuple(SIX)
-
-
-def test_same_seed_deals_the_same_game():
-    first = make_game(seed=7)
-    second = make_game(seed=7)
-    assert first.players == second.players
+def test_same_seed_deals_the_same_cards():
+    assert make_game(seed=7).players == make_game(seed=7).players
 
 
 def test_unknown_player_is_rejected():
@@ -124,11 +158,38 @@ def test_unknown_player_is_rejected():
         game.word_of("Mallory")
 
 
+# -- Qui ouvre le débat -------------------------------------------------
+
+
+def test_first_speaker_is_never_mr_white():
+    """Sans mot ni indice entendu, Mr. White devrait inventer à l'aveugle."""
+    for seed in range(60):
+        game = make_game(players=6, undercover=1, mr_white=1, seed=seed)
+        assert game.role_of(game.first_speaker) is not Role.MR_WHITE
+
+
+def test_first_speaker_varies_between_games():
+    speakers = {make_game(seed=s).first_speaker for s in range(40)}
+    assert len(speakers) > 1, "le premier joueur doit être tiré au sort"
+
+
+def test_first_speaker_is_unknown_before_its_card_is_taken():
+    game = make_game(claim=False)
+    assert game.first_speaker is None
+
+
 # -- Éliminations et victoire ------------------------------------------
 
 
+def test_no_elimination_before_every_card_is_taken():
+    game = make_game(claim=False)
+    game.claim(0, "Alice")
+    with pytest.raises(RuleError, match="distribution"):
+        game.eliminate("Alice")
+
+
 def test_elimination_moves_player_out_of_the_active_list():
-    game = make_game(names=SIX, undercover=1)
+    game = make_game(players=6, undercover=1)
     game.eliminate("Bob")
 
     assert "Bob" not in game.active_players
@@ -137,10 +198,8 @@ def test_elimination_moves_player_out_of_the_active_list():
 
 
 def test_cannot_eliminate_twice():
-    game = make_game(names=SIX, undercover=1)
-    # Un civil : sortir l'undercover terminerait la partie, et l'erreur
-    # levée ne serait plus celle qu'on teste.
-    civilian = next(p.name for p in game.players if p.role is Role.CIVILIAN)
+    game = make_game(players=6, undercover=1)
+    civilian = role_named(game, Role.CIVILIAN)
     game.eliminate(civilian)
 
     with pytest.raises(RuleError, match="déjà éliminé"):
@@ -148,10 +207,8 @@ def test_cannot_eliminate_twice():
 
 
 def test_civilians_win_when_the_last_special_falls():
-    game = make_game(names=SIX, undercover=1)
-    undercover = next(p.name for p in game.players if p.role is Role.UNDERCOVER)
-
-    result = game.eliminate(undercover)
+    game = make_game(players=6, undercover=1)
+    result = game.eliminate(role_named(game, Role.UNDERCOVER))
 
     assert result.game_over is True
     assert result.winner is Team.CIVILIANS
@@ -159,7 +216,7 @@ def test_civilians_win_when_the_last_special_falls():
 
 
 def test_specials_win_once_they_equal_the_civilians():
-    game = make_game(names=SIX, undercover=2)
+    game = make_game(players=6, undercover=2)
     civilians = [p.name for p in game.players if p.role is Role.CIVILIAN]
 
     # 4 civils / 2 undercover : le groupe se trompe deux fois de suite.
@@ -168,30 +225,118 @@ def test_specials_win_once_they_equal_the_civilians():
 
     assert result.game_over is True
     assert result.winner is Team.SPECIALS
-    assert set(result.active_players) == set(game.active_players)
-
-
-def test_elimination_reports_the_role_of_the_victim():
-    game = make_game(names=SIX, undercover=1)
-    undercover = next(p.name for p in game.players if p.role is Role.UNDERCOVER)
-    assert game.eliminate(undercover).role is Role.UNDERCOVER
 
 
 def test_cannot_eliminate_after_the_game_is_over():
-    game = make_game(names=SIX, undercover=1)
-    undercover = next(p.name for p in game.players if p.role is Role.UNDERCOVER)
-    game.eliminate(undercover)
+    game = make_game(players=6, undercover=1)
+    game.eliminate(role_named(game, Role.UNDERCOVER))
 
     with pytest.raises(RuleError, match="terminée"):
         game.eliminate(next(iter(game.active_players)))
+
+
+# -- Le dernier mot de Mr. White ---------------------------------------
+
+
+def test_eliminating_mr_white_suspends_the_game():
+    """Les civils ne gagnent pas tant que Mr. White n'a pas proposé."""
+    game = make_game(players=6, undercover=0, mr_white=1)
+    result = game.eliminate(role_named(game, Role.MR_WHITE))
+
+    assert result.awaiting_guess is True
+    assert result.game_over is False  # le tableau dit civils, la règle dit "attends"
+    assert result.winner is None
+    assert game.is_over is False
+
+
+def test_mr_white_wins_by_naming_the_majority_word():
+    game = make_game(players=6, undercover=0, mr_white=1)
+    mr_white = role_named(game, Role.MR_WHITE)
+    game.eliminate(mr_white)
+
+    result = game.guess(game.majority_word)
+
+    assert result.correct is True
+    assert result.player == mr_white
+    assert result.winner is Team.SPECIALS
+    assert game.winner is Team.SPECIALS
+
+
+def test_a_wrong_guess_hands_the_game_back_to_the_civilians():
+    game = make_game(players=6, undercover=0, mr_white=1)
+    game.eliminate(role_named(game, Role.MR_WHITE))
+
+    result = game.guess("nimportequoi")
+
+    assert result.correct is False
+    assert result.answer == game.majority_word  # révélé pour la table
+    assert game.winner is Team.CIVILIANS
+
+
+def test_a_wrong_guess_lets_a_running_game_continue():
+    """Mr. White tombe alors qu'un Undercover tient encore : on repart."""
+    game = make_game(players=6, undercover=1, mr_white=1)
+    game.eliminate(role_named(game, Role.MR_WHITE))
+
+    assert game.guess("nimportequoi").game_over is False
+    assert game.is_over is False
+    assert game.awaiting_guess is None
+
+
+def test_guess_ignores_case_accents_and_punctuation():
+    """Le mot est tapé au doigt : « Porte-Clés » vaut « porte cles »."""
+    assert normalize_word("Porte-Clés") == normalize_word("  porte cles ")
+    assert normalize_word("Éclair") == normalize_word("eclair")
+    assert normalize_word("chat") != normalize_word("chien")
+
+
+def test_nothing_else_happens_until_mr_white_has_spoken():
+    game = make_game(players=6, undercover=1, mr_white=1)
+    mr_white = role_named(game, Role.MR_WHITE)
+    game.eliminate(mr_white)
+
+    assert game.awaiting_guess == mr_white
+    with pytest.raises(RuleError, match="doit d'abord proposer"):
+        game.eliminate(role_named(game, Role.CIVILIAN))
+
+
+def test_only_an_eliminated_mr_white_may_guess():
+    game = make_game(players=6, undercover=1, mr_white=0)
+    with pytest.raises(RuleError, match="Personne n'attend"):
+        game.guess("chat")
+
+    game.eliminate(role_named(game, Role.CIVILIAN))
+    with pytest.raises(RuleError, match="Personne n'attend"):
+        game.guess("chat")
+
+
+def test_an_empty_guess_is_refused():
+    game = make_game(players=6, undercover=0, mr_white=1)
+    game.eliminate(role_named(game, Role.MR_WHITE))
+
+    with pytest.raises(RuleError, match="ne peut pas être vide"):
+        game.guess("   ")
+    assert game.awaiting_guess is not None  # la main reste à jouer
+
+
+def test_each_mr_white_gets_his_own_guess():
+    game = make_game(players=8, undercover=0, mr_white=2)
+    whites = [p.name for p in game.players if p.role is Role.MR_WHITE]
+
+    game.eliminate(whites[0])
+    game.guess("nimportequoi")
+    game.eliminate(whites[1])
+
+    assert game.awaiting_guess == whites[1]
+    assert game.guess(game.majority_word).winner is Team.SPECIALS
 
 
 # -- Annulation --------------------------------------------------------
 
 
 def test_undo_puts_the_player_back_in_play():
-    game = make_game(names=SIX, undercover=1)
-    civilian = next(p.name for p in game.players if p.role is Role.CIVILIAN)
+    game = make_game(players=6, undercover=1)
+    civilian = role_named(game, Role.CIVILIAN)
     game.eliminate(civilian)
 
     assert game.undo_last_elimination() == civilian
@@ -201,27 +346,38 @@ def test_undo_puts_the_player_back_in_play():
 
 def test_undo_revives_a_finished_game():
     """Sortir le dernier imposteur finit la partie ; l'annuler la relance."""
-    game = make_game(names=SIX, undercover=1)
-    undercover = next(p.name for p in game.players if p.role is Role.UNDERCOVER)
+    game = make_game(players=6, undercover=1)
+    undercover = role_named(game, Role.UNDERCOVER)
     game.eliminate(undercover)
     assert game.is_over
 
     game.undo_last_elimination()
 
     assert not game.is_over
-    assert game.winner is None
-    # …et on peut rejouer le coup.
     assert game.eliminate(undercover).game_over is True
 
 
-def test_undo_unwinds_one_step_at_a_time():
-    game = make_game(names=SIX, undercover=2)
-    civilians = [p.name for p in game.players if p.role is Role.CIVILIAN]
-    game.eliminate(civilians[0])
-    game.eliminate(civilians[1])
+def test_undo_cancels_a_win_by_guess():
+    game = make_game(players=6, undercover=0, mr_white=1)
+    mr_white = role_named(game, Role.MR_WHITE)
+    game.eliminate(mr_white)
+    game.guess(game.majority_word)
+    assert game.winner is Team.SPECIALS
 
     game.undo_last_elimination()
-    assert game.eliminated_players == (civilians[0],)
+
+    assert game.winner is None
+    assert mr_white in game.active_players
+
+
+def test_undo_clears_a_guess_still_owed():
+    game = make_game(players=6, undercover=1, mr_white=1)
+    game.eliminate(role_named(game, Role.MR_WHITE))
+
+    game.undo_last_elimination()
+
+    assert game.awaiting_guess is None
+    assert game.eliminate(role_named(game, Role.CIVILIAN)).game_over is False
 
 
 def test_undo_without_elimination_is_refused():

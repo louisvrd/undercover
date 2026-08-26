@@ -7,7 +7,7 @@
     <meta name="description" content="Le jeu de mots où il faut démasquer les imposteurs. Fonctionne hors-ligne.">
 
     <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#2c3e50">
+    <meta name="theme-color" content="#0f1620">
 
     <!-- iOS ignore le manifest pour l'icône et le mode plein écran -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +24,7 @@
             <h1>Undercover</h1>
         </header>
 
-        <!-- Écran 1 — configuration -->
+        <!-- Écran 1 — combien de joueurs, combien d'imposteurs -->
         <section id="setup-screen" class="app-screen">
             <div class="app-card">
                 <div class="app-card-header">Configuration</div>
@@ -77,9 +77,9 @@
                         </div>
                     </div>
 
-                    <div id="player-names" class="player-names-container"></div>
+                    <p id="roster-hint" class="hint" hidden></p>
 
-                    <button id="start-game" class="app-button">Commencer la partie</button>
+                    <button id="start-game" class="app-button">Distribuer les cartes</button>
                 </div>
             </div>
 
@@ -87,27 +87,23 @@
             <p class="version-tag">Undercover <span id="app-version"></span></p>
         </section>
 
-        <!-- Écran 2 — chacun découvre son mot -->
-        <section id="reveal-screen" class="app-screen" hidden>
+        <!-- Écran 2 — le plateau : chacun choisit sa carte -->
+        <section id="board-screen" class="app-screen" hidden>
             <div class="app-card">
-                <div class="app-card-header">Distribution des mots</div>
+                <div class="app-card-header">Distribution</div>
                 <div class="app-card-body">
-                    <div id="current-avatar" class="current-avatar"></div>
-                    <p class="turn-label">
-                        Passez l'appareil à <strong id="current-player"></strong>
-                    </p>
+                    <p class="board-turn" id="board-turn"></p>
+                    <p class="hint" id="board-hint"></p>
+                    <div id="board-cards" class="board-grid"></div>
+                </div>
+            </div>
 
-                    <div id="word-card" class="word-card" hidden>
-                        <div id="word-content" class="word-content"></div>
-                        <p id="word-hint" class="hint"></p>
-                    </div>
-
-                    <div class="player-actions">
-                        <button id="show-word" class="app-button">Voir mon mot</button>
-                        <button id="next-player" class="app-button" hidden>
-                            <span id="next-label">Suivant</span>
-                        </button>
-                    </div>
+            <div class="app-card" id="board-done" hidden>
+                <div class="app-card-body board-start">
+                    <p class="hint">C'est à</p>
+                    <p class="board-start-name" id="first-speaker"></p>
+                    <p class="hint">de commencer. Décrivez votre mot en un seul indice.</p>
+                    <button id="go-debate" class="app-button">Lancer le débat</button>
                 </div>
             </div>
         </section>
@@ -146,10 +142,60 @@
         </section>
     </div>
 
+    <!-- Création de profil, au premier tour -->
+    <div id="profile-modal" class="sheet-modal" hidden>
+        <div class="sheet">
+            <p class="sheet-title">Qui prend cette carte ?</p>
+
+            <div class="profile-photo-row">
+                <button type="button" id="profile-photo" class="avatar-button" aria-label="Ajouter une photo"></button>
+            </div>
+
+            <input type="text" id="profile-name" class="form-control" placeholder="Ton prénom" autocomplete="off" maxlength="14">
+            <p id="profile-error" class="sheet-error" hidden></p>
+
+            <button type="button" id="profile-confirm" class="app-button">Voir mon mot</button>
+            <button type="button" id="profile-cancel" class="app-button danger-button">Annuler</button>
+        </div>
+    </div>
+
+    <!-- Le mot que porte la carte -->
+    <div id="word-modal" class="sheet-modal" hidden>
+        <div class="sheet">
+            <p class="sheet-title" id="word-owner"></p>
+
+            <div class="word-card">
+                <div id="word-content" class="word-content"></div>
+                <p id="word-hint" class="hint"></p>
+            </div>
+
+            <button type="button" id="word-done" class="app-button">J'ai mémorisé</button>
+        </div>
+    </div>
+
+    <!-- La dernière chance d'un Mr. White démasqué -->
+    <div id="guess-modal" class="sheet-modal" hidden>
+        <div class="sheet">
+            <p class="sheet-title"><strong id="guess-who"></strong>, dernière chance</p>
+            <p class="hint">
+                Tu étais Mr. White. Nomme le mot des civils et les imposteurs
+                l'emportent.
+            </p>
+
+            <input type="text" id="guess-input" class="form-control" placeholder="Le mot des civils" autocomplete="off" autocapitalize="none" maxlength="30">
+            <p id="guess-error" class="sheet-error" hidden></p>
+
+            <button type="button" id="guess-confirm" class="app-button">Proposer</button>
+            <button type="button" id="guess-cancel" class="app-button danger-button">
+                ↩ Annuler l'élimination
+            </button>
+        </div>
+    </div>
+
     <!-- Revoir son mot en cours de partie -->
-    <div id="peek-modal" class="camera-modal" hidden>
-        <div class="camera-sheet">
-            <p class="camera-title" id="peek-title">Qui veut revoir son mot ?</p>
+    <div id="peek-modal" class="sheet-modal" hidden>
+        <div class="sheet">
+            <p class="sheet-title" id="peek-title">Qui veut revoir son mot ?</p>
 
             <div id="peek-list" class="player-list"></div>
 
@@ -163,9 +209,9 @@
     </div>
 
     <!-- Caméra intégrée : voir camera.js pour la raison -->
-    <div id="camera-modal" class="camera-modal" hidden>
-        <div class="camera-sheet">
-            <p class="camera-title">Photo de <strong id="camera-who"></strong></p>
+    <div id="camera-modal" class="sheet-modal" hidden>
+        <div class="sheet">
+            <p class="sheet-title">Photo de <strong id="camera-who"></strong></p>
 
             <div class="camera-frame">
                 <!-- playsinline + muted : sans eux, iOS bascule en plein
@@ -173,7 +219,7 @@
                 <video id="camera-video" playsinline muted autoplay></video>
             </div>
 
-            <p id="camera-error" class="camera-error" hidden></p>
+            <p id="camera-error" class="sheet-error" hidden></p>
 
             <div class="camera-actions">
                 <button type="button" id="camera-flip" class="camera-side" aria-label="Changer de caméra">⟲</button>

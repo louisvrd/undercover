@@ -5,17 +5,21 @@
  * page chargée. Les règles vivent dans core.js, cette couche ne fait que
  * les afficher.
  *
+ * Déroulé : on choisit un effectif, le moteur pose les rôles sur des
+ * cartes anonymes, puis chacun prend la carte qu'il veut. Le hasard vient
+ * donc de la table, pas de l'application.
+ *
  * Les noms saisis ne sont jamais injectés en HTML (textContent partout).
  */
 
 import { Game, MIN_PLAYERS, ROLE_LABELS, maxSpecialRoles } from './core.js';
-import { avatarElement, fileToAvatar, loadPhotos, removePhoto, setPhoto } from './photos.js';
+import { avatarElement, fileToAvatar, loadPhotos, setPhoto } from './photos.js';
 import { Camera, isCameraSupported } from './camera.js';
 
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v9';
+const APP_VERSION = 'v11';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -29,26 +33,42 @@ const state = {
   undercover: 1,
   mrWhite: 0,
   maxSpecial: maxSpecialRoles(4),
-  revealIndex: 0,
-  draftPhotos: [], // par ligne de saisie, avant que le nom soit définitif
-  photos: {}, // par nom, une fois la partie lancée
-  pendingNames: [], // composition mémorisée de la partie précédente
+  photos: {},
+  roster: [], // prénoms mémorisés des parties précédentes
+  queue: [], // qui doit piocher, dans l'ordre — vide au tout premier tour
+  queueIndex: 0,
+  pendingCard: null, // carte en attente d'un nom
+  draftPhoto: null, // photo prise dans la feuille de profil
 };
 
 let game = null;
 
-/* ------------------------------------------------------------ sauvegarde */
+/* ------------------------------------------------------------ stockage */
+
+function readJSON(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? 'null');
+  } catch {
+    return null;
+  }
+}
+
+function writeJSON(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false; // mode privé, quota plein
+  }
+}
 
 function save(phase) {
-  try {
-    localStorage.setItem(
-      SAVE_KEY,
-      JSON.stringify({ game: game.toJSON(), phase, revealIndex: state.revealIndex }),
-    );
-  } catch {
-    // Mode privé, quota plein… : la partie continue, elle ne survivra
-    // simplement pas à un rechargement.
-  }
+  writeJSON(SAVE_KEY, {
+    game: game.toJSON(),
+    phase,
+    queue: state.queue,
+    queueIndex: state.queueIndex,
+  });
 }
 
 function clearSave() {
@@ -61,38 +81,23 @@ function clearSave() {
 
 /** Retient la composition du groupe pour la prochaine partie. */
 function saveRoster(names) {
-  try {
-    localStorage.setItem(
-      ROSTER_KEY,
-      JSON.stringify({ names, undercover: state.undercover, mrWhite: state.mrWhite }),
-    );
-  } catch {
-    /* pas grave : il faudra retaper les noms */
-  }
+  state.roster = names;
+  writeJSON(ROSTER_KEY, { names, undercover: state.undercover, mrWhite: state.mrWhite });
 }
 
 function applyRoster() {
-  let roster;
-  try {
-    roster = JSON.parse(localStorage.getItem(ROSTER_KEY) ?? 'null');
-  } catch {
-    return;
+  const roster = readJSON(ROSTER_KEY);
+  if (!roster || !Array.isArray(roster.names)) return;
+
+  const names = roster.names.filter((n) => typeof n === 'string' && n.trim());
+  state.roster = names.slice(0, MAX_PLAYERS);
+
+  if (names.length >= MIN_PLAYERS) {
+    state.numPlayers = Math.min(names.length, MAX_PLAYERS);
+    el('num-players').value = state.numPlayers;
   }
-  if (!roster || !Array.isArray(roster.names) || roster.names.length < MIN_PLAYERS) return;
-
-  const names = roster.names.filter((n) => typeof n === 'string').slice(0, MAX_PLAYERS);
-  if (names.length < MIN_PLAYERS) return;
-
-  state.numPlayers = names.length;
-  state.undercover = Number.isInteger(roster.undercover) ? roster.undercover : state.undercover;
-  state.mrWhite = Number.isInteger(roster.mrWhite) ? roster.mrWhite : state.mrWhite;
-  state.pendingNames = names;
-
-  // Les habitués retrouvent leur photo en même temps que leur nom.
-  names.forEach((name, i) => {
-    if (state.photos[name]) state.draftPhotos[i] = state.photos[name];
-  });
-  el('num-players').value = state.numPlayers;
+  if (Number.isInteger(roster.undercover)) state.undercover = roster.undercover;
+  if (Number.isInteger(roster.mrWhite)) state.mrWhite = roster.mrWhite;
 }
 
 /* -------------------------------------------------------------- haptique */
@@ -103,25 +108,6 @@ function haptic(pattern) {
     navigator.vibrate?.(pattern);
   } catch {
     /* certains navigateurs lèvent au lieu d'ignorer */
-  }
-}
-
-function loadSave() {
-  let raw;
-  try {
-    raw = localStorage.getItem(SAVE_KEY);
-  } catch {
-    return null;
-  }
-  if (!raw) return null;
-
-  try {
-    const data = JSON.parse(raw);
-    const restored = Game.restore(data.game);
-    if (!restored) return null;
-    return { game: restored, phase: data.phase, revealIndex: data.revealIndex ?? 0 };
-  } catch {
-    return null;
   }
 }
 
@@ -140,189 +126,22 @@ function notify(message, type = 'info') {
 }
 
 function showScreen(id) {
-  ['setup-screen', 'reveal-screen', 'game-screen'].forEach((screen) => {
+  ['setup-screen', 'board-screen', 'game-screen'].forEach((screen) => {
     el(screen).hidden = screen !== id;
   });
   window.scrollTo(0, 0);
 }
 
+function shuffled(items, random = Math.random) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 /* --------------------------------------------------------------- écran 1 */
-
-function nameInputs() {
-  return [...el('player-names').querySelectorAll('input[type="text"]')];
-}
-
-/** Contenu de la carte : la photo en grand, ou l'initiale à défaut. */
-function cardFace(name, photo) {
-  if (photo) {
-    const image = document.createElement('img');
-    image.className = 'player-card-img';
-    image.src = photo;
-    image.alt = ''; // décoratif : le nom est écrit juste en dessous
-    return image;
-  }
-
-  const placeholder = document.createElement('span');
-  placeholder.className = 'player-card-initial';
-  placeholder.textContent = name ? [...name][0].toUpperCase() : '+';
-  placeholder.setAttribute('aria-hidden', 'true');
-  return placeholder;
-}
-
-/** Redessine une carte selon sa photo brouillon. */
-function refreshCard(card, index) {
-  const face = card.querySelector('.player-card-photo');
-  const photo = state.draftPhotos[index] ?? null;
-  const name = card.querySelector('.player-card-name').value.trim();
-  const who = name || `joueur ${index + 1}`;
-
-  face.replaceChildren(cardFace(name, photo));
-  face.setAttribute('aria-label', photo ? `Changer la photo de ${who}` : `Ajouter une photo pour ${who}`);
-  card.querySelector('.player-card-clear').hidden = !photo;
-  card.classList.toggle('has-photo', Boolean(photo));
-}
-
-async function pickPhoto(card, index, file) {
-  if (!file) return;
-  try {
-    state.draftPhotos[index] = await fileToAvatar(file);
-    refreshCard(card, index);
-  } catch (error) {
-    notify(error.message, 'error');
-  }
-}
-
-/* ---------------------------------------------------------------- caméra */
-
-const camera = new Camera();
-let cameraTarget = null; // { card, index } de la carte en cours de photo
-
-// Input photothèque unique, hors de la modale : un <input type="file">
-// visible dans une PWA iOS peut perdre le focus de la page à sa fermeture.
-const galleryInput = document.createElement('input');
-galleryInput.type = 'file';
-galleryInput.accept = 'image/*';
-galleryInput.hidden = true;
-
-function cameraError(message) {
-  const node = el('camera-error');
-  node.textContent = message ?? '';
-  node.hidden = !message;
-  el('camera-shoot').disabled = Boolean(message);
-}
-
-async function openCamera(card, index, name) {
-  cameraTarget = { card, index };
-  el('camera-who').textContent = name || `joueur ${index + 1}`;
-  cameraError(null);
-  el('camera-modal').hidden = false;
-
-  if (!isCameraSupported()) {
-    cameraError('Caméra indisponible ici — passez par la photothèque.');
-    return;
-  }
-  try {
-    await camera.start(el('camera-video'));
-  } catch (error) {
-    cameraError(error.message);
-  }
-}
-
-function closeCamera() {
-  camera.stop(); // coupe le flux : sans ça le voyant reste allumé
-  el('camera-modal').hidden = true;
-  cameraTarget = null;
-}
-
-function shoot() {
-  if (!cameraTarget) return;
-  const { card, index } = cameraTarget;
-  try {
-    state.draftPhotos[index] = camera.grab();
-  } catch (error) {
-    cameraError(error.message);
-    return;
-  }
-  closeCamera();
-  refreshCard(card, index);
-  haptic(20);
-}
-
-async function flipCamera() {
-  cameraError(null);
-  try {
-    await camera.flip(el('camera-video'));
-  } catch (error) {
-    cameraError(error.message);
-  }
-}
-
-galleryInput.addEventListener('change', async () => {
-  const file = galleryInput.files[0];
-  galleryInput.value = ''; // pour que reprendre la même photo redéclenche 'change'
-  if (!file || !cameraTarget) return;
-
-  const { card, index } = cameraTarget;
-  closeCamera();
-  await pickPhoto(card, index, file);
-});
-
-function buildPlayerCard(index, value) {
-  const card = document.createElement('div');
-  card.className = 'player-card';
-
-  const face = document.createElement('button');
-  face.type = 'button';
-  face.className = 'player-card-photo';
-  face.addEventListener('click', () => openCamera(card, index, name.value.trim()));
-
-  const name = document.createElement('input');
-  name.type = 'text';
-  name.className = 'player-card-name';
-  name.placeholder = `Joueur ${index + 1}`;
-  name.autocomplete = 'off';
-  name.maxLength = 14; // au-delà, le nom déborde de la carte
-  name.value = value;
-
-  // Un joueur qui revient retrouve sa photo dès que son nom est écrit.
-  name.addEventListener('change', () => {
-    const known = state.photos[name.value.trim()];
-    if (known && !state.draftPhotos[index]) state.draftPhotos[index] = known;
-    refreshCard(card, index);
-  });
-  name.addEventListener('input', () => {
-    // L'initiale du placeholder suit la frappe tant qu'il n'y a pas de photo.
-    if (!state.draftPhotos[index]) refreshCard(card, index);
-  });
-
-  const clear = document.createElement('button');
-  clear.type = 'button';
-  clear.className = 'player-card-clear';
-  clear.textContent = '×';
-  clear.hidden = true;
-  clear.setAttribute('aria-label', 'Retirer la photo');
-  clear.addEventListener('click', () => {
-    const who = name.value.trim();
-    state.draftPhotos[index] = null;
-    if (who) removePhoto(who);
-    refreshCard(card, index);
-  });
-
-  card.append(face, name, clear);
-  refreshCard(card, index);
-  return card;
-}
-
-function renderNameInputs() {
-  const container = el('player-names');
-  const typed = nameInputs().map((input) => input.value);
-
-  container.replaceChildren();
-  for (let i = 0; i < state.numPlayers; i += 1) {
-    // Priorité : ce qui est déjà tapé, sinon la composition mémorisée.
-    container.appendChild(buildPlayerCard(i, typed[i] ?? state.pendingNames[i] ?? ''));
-  }
-}
 
 function refreshRules() {
   state.maxSpecial = maxSpecialRoles(state.numPlayers);
@@ -338,16 +157,22 @@ function refreshRules() {
   el('roles-hint').textContent =
     `À ${state.numPlayers} joueurs : ${state.maxSpecial} rôle(s) spécial(aux) au maximum, ` +
     'pour que les civils restent majoritaires au départ.';
+
+  const known = state.roster.length;
+  const hint = el('roster-hint');
+  hint.hidden = known < MIN_PLAYERS;
+  hint.textContent =
+    known >= state.numPlayers
+      ? `${known} profils mémorisés : l'app annoncera qui pioche.`
+      : `${known} profils mémorisés — les ${state.numPlayers - known} autres créeront le leur.`;
 }
 
 function step(target, delta) {
   if (target === 'num-players') {
     const next = state.numPlayers + delta;
     if (next < MIN_PLAYERS || next > MAX_PLAYERS) return;
-    if (delta < 0) state.draftPhotos[next] = null; // la ligne disparaît
     state.numPlayers = next;
     el('num-players').value = next;
-    renderNameInputs();
     refreshRules();
     return;
   }
@@ -364,86 +189,191 @@ function step(target, delta) {
 }
 
 function startGame() {
-  const names = nameInputs().map((i) => i.value.trim());
-
-  if (names.some((name) => !name)) {
-    notify('Tous les joueurs doivent avoir un nom.', 'error');
-    return;
-  }
-  if (new Set(names).size !== names.length) {
-    notify('Deux joueurs ne peuvent pas porter le même nom.', 'error');
-    return;
-  }
-
   try {
-    game = new Game(names, state.undercover, state.mrWhite);
+    game = new Game(state.numPlayers, state.undercover, state.mrWhite);
   } catch (error) {
     notify(error.message, 'error');
     return;
   }
 
-  // Les photos brouillon prennent enfin le nom définitif de leur joueur.
-  let stored = true;
-  names.forEach((name, i) => {
-    if (state.draftPhotos[i]) stored = setPhoto(name, state.draftPhotos[i]) && stored;
-  });
-  state.photos = loadPhotos();
-  if (!stored) notify('Photos non enregistrées : mémoire du navigateur pleine.', 'warning');
-  saveRoster(names);
+  // Assez de profils connus : l'app annonce qui pioche, dans un ordre
+  // tiré au sort. Sinon chacun crée le sien en prenant sa carte.
+  state.queue =
+    state.roster.length >= state.numPlayers
+      ? shuffled(state.roster).slice(0, state.numPlayers)
+      : [];
+  state.queueIndex = 0;
 
-  state.revealIndex = 0;
   haptic(25);
-  save('reveal');
-  showScreen('reveal-screen');
-  showTurn();
+  showScreen('board-screen');
+  renderBoard();
+  save('board');
 }
 
 /* --------------------------------------------------------------- écran 2 */
 
-function showTurn() {
-  const name = game.names[state.revealIndex];
-
-  el('current-avatar').replaceChildren(
-    avatarElement(name, state.photos[name], 'avatar-lg'),
-  );
-  el('current-player').textContent = name;
-  el('word-card').hidden = true;
-  el('show-word').hidden = false;
-  el('next-player').hidden = true;
+/** Le prénom attendu pour la prochaine carte, ou null si création libre. */
+function expectedName() {
+  return state.queue[state.queueIndex] ?? null;
 }
 
-function showWord() {
-  const player = game.names[state.revealIndex];
-  const word = game.wordOf(player);
+function renderBoard() {
+  const owners = game.owners;
+  const grid = el('board-cards');
+  grid.replaceChildren();
 
+  owners.forEach((owner, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = owner ? 'board-card taken' : 'board-card';
+
+    if (owner) {
+      card.appendChild(avatarElement(owner, state.photos[owner], 'avatar-sm'));
+      const label = document.createElement('span');
+      label.textContent = owner;
+      card.appendChild(label);
+      card.disabled = true;
+    } else {
+      const back = document.createElement('span');
+      back.className = 'board-card-back';
+      back.textContent = '?';
+      card.appendChild(back);
+      card.addEventListener('click', () => pickCard(index));
+    }
+    grid.appendChild(card);
+  });
+  stagger(grid);
+
+  const done = game.allClaimed;
+  const who = expectedName();
+
+  el('board-turn').textContent = done
+    ? 'Toutes les cartes sont prises.'
+    : who
+      ? `${who}, choisis une carte`
+      : 'Prenez une carte chacun votre tour';
+  el('board-hint').hidden = done;
+  el('board-hint').textContent = who
+    ? 'Le rôle dépend de la carte, pas de toi.'
+    : 'Tu créeras ton profil juste après.';
+
+  el('board-done').hidden = !done;
+  if (done) el('first-speaker').textContent = game.firstSpeaker;
+}
+
+function pickCard(index) {
+  state.pendingCard = index;
+  const who = expectedName();
+
+  if (who) {
+    claimCard(index, who); // profil déjà connu : on prend directement
+    return;
+  }
+  openProfileSheet();
+}
+
+function claimCard(index, name) {
+  let result;
+  try {
+    result = game.claim(index, name);
+  } catch (error) {
+    notify(error.message, 'error');
+    return;
+  }
+
+  if (state.draftPhoto) {
+    setPhoto(name, state.draftPhoto);
+    state.photos = loadPhotos();
+    state.draftPhoto = null;
+  }
+
+  state.pendingCard = null;
+  state.queueIndex += 1;
+  closeProfileSheet();
+  showWord(name, result.word);
+
+  renderBoard();
+  save(game.allClaimed ? 'board-done' : 'board');
+}
+
+/* -- feuille de création de profil -- */
+
+function refreshProfilePhoto() {
+  const name = el('profile-name').value.trim();
+  el('profile-photo').replaceChildren(
+    avatarElement(name || '?', state.draftPhoto, 'avatar-lg'),
+  );
+}
+
+function openProfileSheet() {
+  state.draftPhoto = null;
+  el('profile-name').value = '';
+  el('profile-error').hidden = true;
+  refreshProfilePhoto();
+  el('profile-modal').hidden = false;
+  el('profile-name').focus();
+}
+
+function closeProfileSheet() {
+  el('profile-modal').hidden = true;
+}
+
+function confirmProfile() {
+  const name = el('profile-name').value.trim();
+  const error = el('profile-error');
+
+  if (!name) {
+    error.textContent = 'Il faut un prénom.';
+    error.hidden = false;
+    return;
+  }
+  if (game.names.includes(name)) {
+    error.textContent = `${name} a déjà pris une carte.`;
+    error.hidden = false;
+    return;
+  }
+  claimCard(state.pendingCard, name);
+}
+
+function cancelProfile() {
+  state.pendingCard = null;
+  state.draftPhoto = null;
+  closeProfileSheet();
+}
+
+/* -- le mot que porte la carte -- */
+
+function showWord(name, word) {
+  el('word-owner').textContent = name;
   el('word-content').textContent = word ?? 'Mr. White';
   el('word-hint').textContent =
     word === null
-      ? "Vous n'avez aucun mot : écoutez, et faites semblant."
-      : 'Mémorisez-le, puis passez au joueur suivant.';
-  el('word-card').hidden = false;
-  el('show-word').hidden = true;
-
-  const isLast = state.revealIndex === game.names.length - 1;
-  el('next-label').textContent = isLast ? 'Commencer le débat' : 'Suivant';
-  el('next-player').hidden = false;
-  haptic(word === null ? [15, 40, 15] : 15); // Mr. White a droit à sa signature
+      ? "Tu n'as aucun mot : écoute, et fais semblant."
+      : 'Mémorise-le, puis passe le téléphone.';
+  el('word-modal').hidden = false;
+  haptic(word === null ? [15, 40, 15] : 15);
 }
 
-function nextPlayer() {
-  state.revealIndex += 1;
+function closeWord() {
+  el('word-modal').hidden = true;
+}
 
-  if (state.revealIndex < game.names.length) {
-    save('reveal');
-    showTurn();
-    return;
-  }
-  save('play');
+function goToDebate() {
+  saveRoster(game.names);
   showScreen('game-screen');
   render();
+  save('play');
+  haptic(25);
 }
 
 /* --------------------------------------------------------------- écran 3 */
+
+/** Décale l'apparition des lignes pour qu'elles arrivent en cascade. */
+function stagger(container) {
+  [...container.children].forEach((child, i) => {
+    child.style.animationDelay = `${Math.min(i, 8) * 45}ms`;
+  });
+}
 
 function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
   const row = document.createElement('div');
@@ -454,9 +384,7 @@ function playerRow(name, { eliminated = false, onEliminate = null } = {}) {
   label.textContent = name;
   row.appendChild(label);
 
-  if (onEliminate) {
-    row.appendChild(eliminateButton(name, onEliminate));
-  }
+  if (onEliminate) row.appendChild(eliminateButton(name, onEliminate));
   return row;
 }
 
@@ -494,13 +422,6 @@ function eliminateButton(name, onEliminate) {
   });
 
   return button;
-}
-
-/** Décale l'apparition des lignes pour qu'elles arrivent en cascade. */
-function stagger(container) {
-  [...container.children].forEach((child, i) => {
-    child.style.animationDelay = `${Math.min(i, 8) * 45}ms`;
-  });
 }
 
 function render() {
@@ -543,6 +464,16 @@ function eliminate(name) {
     return;
   }
 
+  // Un Mr. White démasqué garde une main à jouer : rien n'est tranché
+  // tant qu'il n'a pas proposé son mot.
+  if (result.awaitingGuess) {
+    save('guess');
+    notify(`${result.player} était ${ROLE_LABELS[result.role]}.`, 'info');
+    render();
+    openGuess(result.player);
+    return;
+  }
+
   if (result.gameOver) {
     clearSave(); // partie finie : rien à reprendre
     haptic([40, 60, 120]);
@@ -554,48 +485,50 @@ function eliminate(name) {
   render();
 }
 
-/* ------------------------------------------------- revoir son mot */
+/* -- la dernière chance de Mr. White -- */
 
-/**
- * Un joueur qui a oublié son mot peut le reconsulter en cours de partie.
- *
- * Rien n'empêche de regarder le mot d'un autre : sur un seul téléphone
- * qui circule, ce n'est de toute façon pas défendable. On se contente
- * donc de le rendre pratique, et de rappeler de masquer avant de rendre
- * l'appareil.
- */
-function openPeek() {
-  const list = el('peek-list');
-  list.replaceChildren();
-
-  game.activePlayers.forEach((name) => {
-    const row = playerRow(name);
-    row.style.cursor = 'pointer';
-    row.addEventListener('click', () => showPeekWord(name));
-    list.appendChild(row);
-  });
-  stagger(list);
-
-  el('peek-title').textContent = 'Qui veut revoir son mot ?';
-  el('peek-card').hidden = true;
-  list.hidden = false;
-  el('peek-modal').hidden = false;
+function openGuess(name) {
+  el('guess-who').textContent = name;
+  el('guess-input').value = '';
+  el('guess-error').hidden = true;
+  el('guess-modal').hidden = false;
+  el('guess-input').focus();
+  haptic([15, 40, 15]);
 }
 
-function showPeekWord(name) {
-  const word = game.wordOf(name);
+function submitGuess() {
+  let result;
+  try {
+    result = game.guess(el('guess-input').value);
+  } catch (error) {
+    const box = el('guess-error');
+    box.textContent = error.message;
+    box.hidden = false;
+    return;
+  }
 
-  el('peek-title').textContent = name;
-  el('peek-word').textContent = word ?? 'Mr. White';
-  el('peek-list').hidden = true;
-  el('peek-card').hidden = false;
-  haptic(15);
+  el('guess-modal').hidden = true;
+
+  if (result.correct) {
+    notify(`${result.player} a trouvé : « ${result.answer} » !`, 'success');
+    haptic([40, 60, 120]);
+  } else {
+    // Le mot reste secret : l'annoncer alors qu'un Undercover est encore
+    // en jeu donnerait la réponse à toute la table. La révélation de fin
+    // s'en charge quand la partie s'arrête vraiment.
+    notify(`« ${result.word} » : raté.`, 'error');
+    haptic(35);
+  }
+
+  if (game.isOver) clearSave();
+  else save('play');
+  render();
 }
 
-function closePeek() {
-  el('peek-modal').hidden = true;
-  el('peek-card').hidden = true;
-  el('peek-list').hidden = false;
+function cancelGuess() {
+  // Sortie de secours d'un tap raté : Mr. White retourne en jeu.
+  el('guess-modal').hidden = true;
+  undoElimination();
 }
 
 function undoElimination() {
@@ -641,6 +574,122 @@ function showReveal() {
   el('reveal-card').hidden = false;
 }
 
+/* ------------------------------------------------- revoir son mot */
+
+/**
+ * Un joueur qui a oublié son mot peut le reconsulter en cours de partie.
+ *
+ * Rien n'empêche de regarder le mot d'un autre : sur un seul téléphone
+ * qui circule, ce n'est de toute façon pas défendable. On se contente
+ * donc de le rendre pratique, et de rappeler de masquer avant de rendre
+ * l'appareil.
+ */
+function openPeek() {
+  const list = el('peek-list');
+  list.replaceChildren();
+
+  game.activePlayers.forEach((name) => {
+    const row = playerRow(name);
+    row.classList.add('tappable');
+    row.addEventListener('click', () => showPeekWord(name));
+    list.appendChild(row);
+  });
+  stagger(list);
+
+  el('peek-title').textContent = 'Qui veut revoir son mot ?';
+  el('peek-card').hidden = true;
+  list.hidden = false;
+  el('peek-modal').hidden = false;
+}
+
+function showPeekWord(name) {
+  el('peek-title').textContent = name;
+  el('peek-word').textContent = game.wordOf(name) ?? 'Mr. White';
+  el('peek-list').hidden = true;
+  el('peek-card').hidden = false;
+  haptic(15);
+}
+
+function closePeek() {
+  el('peek-modal').hidden = true;
+  el('peek-card').hidden = true;
+  el('peek-list').hidden = false;
+}
+
+/* ---------------------------------------------------------------- caméra */
+
+const camera = new Camera();
+
+// Input photothèque unique, hors des feuilles : un <input type="file">
+// visible dans une PWA iOS peut perdre le focus de la page à sa fermeture.
+const galleryInput = document.createElement('input');
+galleryInput.type = 'file';
+galleryInput.accept = 'image/*';
+galleryInput.hidden = true;
+
+function cameraError(message) {
+  const node = el('camera-error');
+  node.textContent = message ?? '';
+  node.hidden = !message;
+  el('camera-shoot').disabled = Boolean(message);
+}
+
+async function openCamera() {
+  el('camera-who').textContent = el('profile-name').value.trim() || 'ce joueur';
+  cameraError(null);
+  el('camera-modal').hidden = false;
+
+  if (!isCameraSupported()) {
+    cameraError('Caméra indisponible ici — passez par la photothèque.');
+    return;
+  }
+  try {
+    await camera.start(el('camera-video'));
+  } catch (error) {
+    cameraError(error.message);
+  }
+}
+
+function closeCamera() {
+  camera.stop(); // coupe le flux : sans ça le voyant reste allumé
+  el('camera-modal').hidden = true;
+}
+
+function shoot() {
+  try {
+    state.draftPhoto = camera.grab();
+  } catch (error) {
+    cameraError(error.message);
+    return;
+  }
+  closeCamera();
+  refreshProfilePhoto();
+  haptic(20);
+}
+
+async function flipCamera() {
+  cameraError(null);
+  try {
+    await camera.flip(el('camera-video'));
+  } catch (error) {
+    cameraError(error.message);
+  }
+}
+
+galleryInput.addEventListener('change', async () => {
+  const file = galleryInput.files[0];
+  galleryInput.value = ''; // pour que reprendre la même photo redéclenche 'change'
+  if (!file) return;
+
+  closeCamera();
+  try {
+    state.draftPhoto = await fileToAvatar(file);
+    refreshProfilePhoto();
+  } catch (error) {
+    notify(error.message, 'error');
+  }
+});
+
 /* ------------------------------------------------------------ install PWA */
 
 function setupInstallHint() {
@@ -679,18 +728,23 @@ function setupInstallHint() {
 /* ------------------------------------------------------------ démarrage */
 
 function resume() {
-  const saved = loadSave();
-  if (!saved) return false;
+  const saved = readJSON(SAVE_KEY);
+  const restored = saved && Game.restore(saved.game);
+  if (!restored) return false;
 
-  game = saved.game;
-  state.revealIndex = Math.min(saved.revealIndex, game.names.length - 1);
+  game = restored;
+  state.queue = Array.isArray(saved.queue) ? saved.queue : [];
+  state.queueIndex = saved.queueIndex ?? 0;
 
-  if (saved.phase === 'reveal') {
-    showScreen('reveal-screen');
-    showTurn();
-  } else {
+  if (saved.phase === 'play' || saved.phase === 'guess') {
     showScreen('game-screen');
     render();
+    // Le téléphone a pu se verrouiller pendant que Mr. White réfléchit :
+    // on lui rend la main là où il l'avait laissée.
+    if (game.awaitingGuess) openGuess(game.awaitingGuess);
+  } else {
+    showScreen('board-screen');
+    renderBoard();
   }
   notify('Partie en cours reprise.', 'info');
   return true;
@@ -702,11 +756,38 @@ document.querySelectorAll('.btn-number').forEach((button) => {
   );
 });
 
+el('start-game').addEventListener('click', startGame);
+el('go-debate').addEventListener('click', goToDebate);
+
+el('profile-photo').addEventListener('click', openCamera);
+el('profile-name').addEventListener('input', refreshProfilePhoto);
+el('profile-confirm').addEventListener('click', confirmProfile);
+el('profile-cancel').addEventListener('click', cancelProfile);
+el('profile-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmProfile();
+});
+
+el('word-done').addEventListener('click', closeWord);
+el('peek-open').addEventListener('click', openPeek);
+el('peek-close').addEventListener('click', closePeek);
+el('undo-elimination').addEventListener('click', undoElimination);
+
+el('guess-confirm').addEventListener('click', submitGuess);
+el('guess-cancel').addEventListener('click', cancelGuess);
+el('guess-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitGuess();
+});
+
 el('camera-shoot').addEventListener('click', shoot);
 el('camera-cancel').addEventListener('click', closeCamera);
 el('camera-flip').addEventListener('click', flipCamera);
 el('camera-gallery').addEventListener('click', () => galleryInput.click());
 document.body.appendChild(galleryInput);
+
+el('new-game').addEventListener('click', () => {
+  clearSave();
+  window.location.reload();
+});
 
 // Passage en arrière-plan : on relâche la caméra plutôt que de la garder
 // ouverte pour rien.
@@ -714,22 +795,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && camera.isRunning) closeCamera();
 });
 
-el('undo-elimination').addEventListener('click', undoElimination);
-el('peek-open').addEventListener('click', openPeek);
-el('peek-close').addEventListener('click', closePeek);
-el('start-game').addEventListener('click', startGame);
-el('show-word').addEventListener('click', showWord);
-el('next-player').addEventListener('click', nextPlayer);
-el('new-game').addEventListener('click', () => {
-  clearSave();
-  window.location.reload();
-});
-
 el('app-version').textContent = APP_VERSION;
 
 state.photos = loadPhotos();
 applyRoster();
-renderNameInputs();
 refreshRules();
 setupInstallHint();
 resume();
