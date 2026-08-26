@@ -87,7 +87,8 @@ bonne manche. Le tirage a lieu à la construction, donc `first_speaker`
 reste inconnu tant que la carte désignée n'a pas trouvé son joueur.
 
 **L'ordre ensuite suit la création des profils**, pas celui des cartes.
-C'est l'ordre dans lequel le téléphone a circulé pendant la distribution,
+C'est l'ordre dans lequel le téléphone a circulé pendant la distribution —
+lui-même une rotation de la liste du groupe, cf. [Les groupes](#les-groupes) —
 donc celui que la table a déjà en tête ; l'ordre des cartes, lui, ne veut
 rien dire pour les joueurs. `speaking_order` prend cette liste et la
 pivote pour commencer par l'orateur de la manche.
@@ -225,8 +226,18 @@ en touche un pour jouer, ou `✎` pour modifier ses profils.
 Un groupe garde ses prénoms et ses photos d'une partie à l'autre, avec son
 nombre d'Undercover et de Mr. White. C'est ce qui évite de ressaisir six
 prénoms à chaque soirée — et ce qui permet à l'app d'annoncer **qui
-pioche**, dans un ordre tiré au sort, au lieu de laisser le téléphone
-tourner au hasard.
+pioche**, au lieu de laisser le téléphone tourner au hasard.
+
+L'ordre de pioche est une **rotation** de la liste du groupe : le premier
+est tiré au sort, puis on suit la liste en bouclant. Avec un groupe
+`Ana, Ben, Cléo, Dan, Eve`, une partie peut appeler `Ben, Cléo, Dan, Eve,
+Ana`. Ce n'est pas un mélange, et c'est délibéré : l'appareil fait le tour
+de la table dans un sens, chacun sait qui il doit servir ensuite. Un vrai
+mélange obligerait à relire un nom sur l'écran à chaque passage.
+
+C'est aussi ce qui fixe le tour de parole, puisqu'il suit l'ordre de
+création des profils : les deux ordres sont la même rotation, seul le
+point de départ diffère.
 
 Un groupe neuf part vide, et c'est voulu : on lance la partie tout de
 suite, et **chacun crée son profil au moment de prendre sa carte**. Les

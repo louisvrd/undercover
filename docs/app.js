@@ -21,7 +21,7 @@ import { Camera, isCameraSupported } from './camera.js';
 // Doit rester identique à CACHE_VERSION dans sw.js — affiché en bas de
 // l'écran de configuration pour savoir d'un coup d'œil quelle version
 // tourne réellement sur un téléphone.
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v17';
 
 const MAX_PLAYERS = 20;
 const SAVE_KEY = 'undercover:save';
@@ -160,13 +160,18 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-function shuffled(items, random = Math.random) {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+/**
+ * La liste pivotée à partir d'un point tiré au sort.
+ *
+ * On ne mélange pas : seul le point de départ est au hasard, l'ordre du
+ * groupe est conservé ensuite. Le téléphone fait alors le tour de la
+ * table dans un sens, comme au tour de parole — un vrai mélange
+ * obligerait à relire un nom à chaque passage.
+ */
+function rotatedFrom(items, random = Math.random) {
+  if (items.length === 0) return [];
+  const start = Math.floor(random() * items.length);
+  return [...items.slice(start), ...items.slice(0, start)];
 }
 
 /* --------------------------------------------------------------- écran 0 */
@@ -370,11 +375,14 @@ function startGame() {
     return;
   }
 
-  // Assez de profils connus : l'app annonce qui pioche, dans un ordre
-  // tiré au sort. Sinon chacun crée le sien en prenant sa carte.
+  // Assez de profils connus : l'app annonce qui pioche. Le premier est
+  // tiré au sort, puis on suit l'ordre du groupe en bouclant. Sinon
+  // chacun crée le sien en prenant sa carte.
   const members = state.group?.members ?? [];
   state.queue =
-    members.length >= state.numPlayers ? shuffled(members).slice(0, state.numPlayers) : [];
+    members.length >= state.numPlayers
+      ? rotatedFrom(members).slice(0, state.numPlayers)
+      : [];
   state.queueIndex = 0;
 
   haptic(25);

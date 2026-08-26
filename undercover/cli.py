@@ -10,6 +10,7 @@ joueur éliminé.
 from __future__ import annotations
 
 import os
+import random
 
 from .core import MIN_PLAYERS, Game, Role, RuleError, Team, max_special_roles
 from .words import OPTIONAL_THEMES, WordGenerator, theme_pairs
@@ -137,9 +138,30 @@ def setup_game() -> tuple[Game, list[str]]:
     return Game(num_players, num_undercover, num_mr_white, words=words), names
 
 
+def rotated_from(items: list[str], rng: random.Random | None = None) -> list[str]:
+    """La liste pivotée à partir d'un point tiré au sort.
+
+    On ne mélange pas : seul le point de départ est au hasard, l'ordre
+    saisi est conservé ensuite. L'appareil fait alors le tour de la table
+    dans un sens, comme au tour de parole.
+    """
+    if not items:
+        return []
+    rng = rng or random.Random()
+    start = rng.randrange(len(items))
+    return items[start:] + items[:start]
+
+
 def deal_cards(game: Game, names: list[str]) -> None:
     """Chacun choisit une carte, puis découvre le mot qu'elle porte."""
-    for name in names:
+    tour = rotated_from(names)
+
+    clear_screen()
+    print(f"\n{tour[0]} commence la distribution.\n")
+    print("Ensuite : " + ", ".join(tour[1:]) + ".")
+    input("\nEntrée quand tout le monde a compris l'ordre...")
+
+    for name in tour:
         free = [i for i, owner in enumerate(game.owners) if owner is None]
 
         clear_screen()
