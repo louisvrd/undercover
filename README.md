@@ -93,8 +93,8 @@ du tour. Sans ça, il fallait retenir qui parlait après qui.
 
 ## Le dictionnaire
 
-**2504 paires écrites à la main**, 3717 mots distincts, réparties en
-91 thèmes.
+**2624 paires écrites à la main**, 3515 mots distincts, réparties en
+107 thèmes.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -137,8 +137,8 @@ trois au maximum. « pomme » tombe tantôt avec « poire », tantôt avec
 « coing » : le tenir ne renseigne sur rien. Un dictionnaire où chaque mot
 n'aurait qu'un seul partenaire est entièrement prévisible dès qu'on le
 connaît — défaut supportable à 257 paires, rédhibitoire à 2500. La
-répartition actuelle : 2641 mots dans une seule paire, 861 dans deux,
-215 dans trois — soit 3717 mots distincts pour 5008 cartes distribuées.
+répartition actuelle : 2174 mots dans une seule paire, 949 dans deux,
+392 dans trois — soit 3515 mots distincts pour 5248 cartes distribuées.
 
 Accessoirement, c'est ce qui rend la taille atteignable. Sans
 réutilisation, 2500 paires exigeraient 5000 mots distincts, ce qui force
@@ -160,6 +160,25 @@ remonte alors que les deux se décrivent très bien séparément. À lire
 comme une liste de points à inspecter, pas comme un verdict — c'est en la
 relisant que sont sortis « toit / toiture » (synonymes) et « ballon /
 balle » (différence de taille seule).
+
+### Ce que l'audit ne verra jamais
+
+Les règles 3, 4 et 7 portent sur ce que deux mots **évoquent ensemble**.
+Aucune mesure de forme ne les attrape : « bain » et « douche » ne se
+ressemblent pas, « or » et « argent » non plus. Elles s'appliquent à la
+relecture, thème par thème.
+
+Cette relecture a été faite sur les 107 thèmes et a retiré 583 paires :
+59 duos réflexes (`or / argent`, `plafond / plancher`, `clavier / souris`,
+`main / pied`), et le reste en synonymes, hyperonymes et différences de
+taille. Elle a aussi coûté six thèmes entiers, écrits en cherchant le
+volume et remplis de mots que personne ne sait décrire — `cynorhodon`,
+`staphylin`, `tombolo`. C'est la règle 6 qui les condamne, et c'est le
+risque permanent quand on vise un gros dictionnaire.
+
+Le vocabulaire libéré a été réinvesti en **recombinaisons** : des mots
+déjà validés appariés autrement, ce que le plafond de trois paires par
+mot autorise. C'est plus sûr que d'aller chercher des mots rares.
 
 ## Les groupes
 
@@ -267,7 +286,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            2504 paires, 91 thèmes
+  words.py            2624 paires, 107 thèmes
   cli.py              terminal            -> core.py
 tests/
   test_core.py        56 tests Python
