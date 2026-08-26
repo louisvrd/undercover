@@ -93,8 +93,8 @@ du tour. Sans ça, il fallait retenir qui parlait après qui.
 
 ## Le dictionnaire
 
-**257 paires écrites à la main**, 514 mots dont aucun ne se répète,
-réparties en 11 thèmes.
+**2504 paires écrites à la main**, 3717 mots distincts, réparties en
+91 thèmes.
 
 Une version précédente tirait deux mots au hasard dans des groupes de
 dix. Le problème : sur les 45 combinaisons d'un groupe, certaines étaient
@@ -114,8 +114,36 @@ Ce qui fait une bonne paire :
 4. **Aucun hyperonyme.** Pas de « chaussure » face à « botte ».
 5. **Pas de différence de taille seule.** « lac » et « étang », c'est la
    même chose en plus petit — indécidable en un indice.
-6. **Que des mots connus.** Un joueur qui reçoit « caracal » ne joue pas,
-   il se tait.
+6. **Que des mots connus, et un seul mot par carte.** Un joueur qui
+   reçoit « caracal » ne joue pas, il se tait. Aucun mot à espace non
+   plus : l'indice unique porterait sur deux idées à la fois.
+7. **Aucun duo réflexe.** C'est la règle ajoutée en passant à l'échelle,
+   et la plus importante pour le plaisir de jeu.
+
+### Le duo réflexe, et pourquoi un mot sert plusieurs fois
+
+« bain » et « douche » vont par deux dans la tête de tout le monde. Celui
+qui tire l'un sait aussitôt ce que tient l'autre camp : l'Undercover se
+fond sans effort, et les civils n'ont plus rien à démasquer. La paire est
+correcte selon les six premières règles, et pourtant elle tue la manche.
+
+Les contraires tombent sous la même règle : « généreux » appelle
+« avare » aussi sûrement. Les traits de caractère sont donc **croisés
+sans rapport entre eux** — « bavard / gourmand », « têtu / rêveur » —
+plutôt qu'opposés deux à deux.
+
+C'est aussi ce qui justifie qu'**un mot serve dans plusieurs paires**,
+trois au maximum. « pomme » tombe tantôt avec « poire », tantôt avec
+« coing » : le tenir ne renseigne sur rien. Un dictionnaire où chaque mot
+n'aurait qu'un seul partenaire est entièrement prévisible dès qu'on le
+connaît — défaut supportable à 257 paires, rédhibitoire à 2500. La
+répartition actuelle : 2690 mots dans une seule paire, 850 dans deux,
+204 dans trois.
+
+Accessoirement, c'est ce qui rend la taille atteignable. Sans
+réutilisation, 2500 paires exigeraient 5000 mots distincts, ce qui force
+à descendre dans un vocabulaire que personne ne sait décrire — la règle 6
+et la taille demandée se contredisent.
 
 L'**ordre de la paire est tiré au sort** à chaque partie : sans cela, le
 mot de la majorité serait toujours le premier écrit dans la liste, et un
@@ -125,11 +153,13 @@ joueur qui la connaît saurait immédiatement dans quel camp il est.
 python tools/audit_words.py
 ```
 
-L'audit sort les paires en double, les mots réutilisés, les mots composés
-et les paires proches. Il mesure la **forme** des mots, pas leur sens :
-« grêle / gel » y remonte alors que les deux se décrivent très
-différemment. À lire comme une liste de points à inspecter, pas comme un
-verdict.
+L'audit échoue sur ce qui est objectivement cassé — paires en double, mot
+au-delà de trois paires, mot à espace. Le reste est indicatif : il liste
+les paires proches **de forme**, pas de sens. « fraise / framboise » y
+remonte alors que les deux se décrivent très bien séparément. À lire
+comme une liste de points à inspecter, pas comme un verdict — c'est en la
+relisant que sont sortis « toit / toiture » (synonymes) et « ballon /
+balle » (différence de taille seule).
 
 ## Les groupes
 
@@ -237,7 +267,7 @@ docs/                 la PWA — c'est ce qui est publié
   icons/
 undercover/           version console Python
   core.py             règles, aucune I/O
-  words.py            257 paires, 11 thèmes
+  words.py            2504 paires, 91 thèmes
   cli.py              terminal            -> core.py
 tests/
   test_core.py        56 tests Python

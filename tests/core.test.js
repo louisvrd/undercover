@@ -451,15 +451,17 @@ test('une paire tirée vient du dictionnaire', () => {
 });
 
 test("l'ordre de la paire est tiré aussi", () => {
-  const random = seeded(5);
-  const orders = new Set();
+  // drawPair consomme deux valeurs : la première choisit la paire, la
+  // seconde son sens. On les fournit plutôt que d'espérer tomber sur la
+  // bonne paire au hasard — le dictionnaire compte des milliers d'entrées.
+  const scripted = (...values) => {
+    let i = 0;
+    return () => values[i++];
+  };
   const [a, b] = WORD_PAIRS[0];
 
-  for (let i = 0; i < 3000; i += 1) {
-    const drawn = drawPair(random);
-    if (key(...drawn) === key(a, b)) orders.add(drawn.join(' '));
-  }
-  assert.equal(orders.size, 2, 'les deux ordres doivent sortir');
+  assert.deepEqual(drawPair(scripted(0, 0.2)), [a, b]);
+  assert.deepEqual(drawPair(scripted(0, 0.8)), [b, a]);
 });
 
 test('aucune paire en double', () => {

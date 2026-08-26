@@ -22,6 +22,14 @@ from undercover.words import PAIRS_BY_THEME, WORD_PAIRS, theme_of  # noqa: E402
 
 SIMILARITY_ALERT = 0.62
 
+# Un mot peut servir dans plusieurs paires — c'est voulu, cf. la règle 7
+# de words.py. Au-delà, il revient trop souvent et le jeu se répète.
+MAX_PAIRS_PER_WORD = 3
+
+# À 2500 paires, les listes complètes noient le signal : on n'affiche que
+# les cas les plus extrêmes de chaque section.
+TOP = 25
+
 
 def strip_accents(word: str) -> str:
     return "".join(
@@ -66,31 +74,44 @@ def main() -> None:
         print("  aucune")
 
     # -- Mots réutilisés ----------------------------------------------
-    section("MOTS UTILISÉS DANS PLUSIEURS PAIRES")
-    print("  Pas un défaut en soi, mais un mot qui revient trop souvent")
-    print("  rend le jeu répétitif.")
+    section("MOTS DANS PLUSIEURS PAIRES")
+    print("  Voulu : un mot qui n'aurait qu'un seul partenaire rendrait")
+    print("  la paire devinable dès qu'on connaît la liste (règle 7).")
+    print(f"  Au-delà de {MAX_PAIRS_PER_WORD}, il revient trop souvent.")
     print()
-    repeats = {w: n for w, n in collections.Counter(words).items() if n > 1}
-    if repeats:
-        for word, count in sorted(repeats.items(), key=lambda kv: -kv[1]):
-            where = [
-                f"{a}/{b}" for a, b in WORD_PAIRS if word in (a, b)
-            ]
+    counts = collections.Counter(words)
+    spread = collections.Counter(counts.values())
+    for n in sorted(spread):
+        print(f"    dans {n} paire(s) : {spread[n]:>5} mots")
+
+    over = {w: n for w, n in counts.items() if n > MAX_PAIRS_PER_WORD}
+    print()
+    if over:
+        problems += len(over)
+        for word, count in sorted(over.items(), key=lambda kv: -kv[1]):
+            where = [f"{a}/{b}" for a, b in WORD_PAIRS if word in (a, b)]
             print(f"  {word:<14} {count}x   {', '.join(where)}")
     else:
-        print("  aucun — chaque mot n'apparaît qu'une fois")
+        print(f"  aucun mot au-dessus de {MAX_PAIRS_PER_WORD} paires")
 
     # -- Mots composés -------------------------------------------------
     section("MOTS COMPOSÉS OU SIGLES")
     print("  Plus durs à décrire en un seul indice.")
     print()
-    compound = [
-        (i, w) for i, pair in enumerate(WORD_PAIRS) for w in pair
-        if " " in w or "-" in w or (w.isupper() and len(w) > 1)
-    ]
-    for i, w in compound:
-        print(f"  {w:<18} {theme_of(i)}")
-    print(f"  -> {len(compound)}")
+    print("  Un mot avec un ESPACE est un défaut : l'indice unique")
+    print("  porterait sur deux idées. Le trait d'union, lui, passe.")
+    print()
+    spaced = sorted({w for pair in WORD_PAIRS for w in pair if " " in w})
+    if spaced:
+        problems += len(spaced)
+        for w in spaced:
+            print(f"  espace : {w}")
+    else:
+        print("  aucun mot à espace")
+
+    hyphen = sorted({w for pair in WORD_PAIRS for w in pair if "-" in w})
+    print(f"\n  traits d'union : {len(hyphen)}")
+    print("  " + ", ".join(hyphen[:TOP]) + (" ..." if len(hyphen) > TOP else ""))
 
     # -- Paires trop proches en surface --------------------------------
     section(f"PAIRES TROP PROCHES EN SURFACE (>= {SIMILARITY_ALERT})")
@@ -106,8 +127,10 @@ def main() -> None:
         ),
         reverse=True,
     )
-    for score, i, a, b in close:
+    for score, i, a, b in close[:TOP]:
         print(f"  {score:.2f}  {a} / {b:<22} {theme_of(i)}")
+    if len(close) > TOP:
+        print(f"  ... et {len(close) - TOP} autres")
     print(f"  -> {len(close)} sur {len(WORD_PAIRS)}")
 
     section("BILAN")
